@@ -1,6 +1,6 @@
 import pygame
 
-from const import *
+from const import DARKSQ, LIGHTSQ, SQSIZE
 
 
 class Game:

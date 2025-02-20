@@ -1,7 +1,7 @@
 import pygame
 import sys
 
-from const import *
+from const import WIDTH, HEIGHT
 from game import Game
 
 
