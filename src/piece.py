@@ -4,7 +4,6 @@ from board import Board
 
 
 class Piece:
-
     @abstractmethod
     def __init__(self, board: Board, square):
         self.board = board
