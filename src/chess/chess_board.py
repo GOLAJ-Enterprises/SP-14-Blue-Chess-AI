@@ -228,7 +228,7 @@ class ChessBoard:
 
         return False
 
-    def _causes_king_check(self, move: Move) -> bool:
+    def _causes_king_check(self, move: "Move") -> bool:
         """Returns if the given `move` will leave the team's King in check.
 
         Args:
