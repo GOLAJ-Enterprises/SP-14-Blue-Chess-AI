@@ -115,7 +115,7 @@ class ChessBoard:
 
         # Pawn moved 2 spaces
         if move.moved_two:
-            assert isinstance(piece, Pawn)
+            assert isinstance(piece, Pawn) and not piece.has_moved
             self.en_passant_target = piece
         else:
             self.en_passant_target = None
@@ -136,13 +136,13 @@ class ChessBoard:
 
         # King Castling check
         if move.castling:
-            assert isinstance(piece, King)
+            assert isinstance(piece, King) and not piece.has_moved
 
             col_diff = ec - sc
             rook_col, new_rook_col = (0, 3) if col_diff < 0 else (7, 5)
 
             corner_rook = self.get_piece((sr, rook_col))
-            assert isinstance(corner_rook, Rook)
+            assert isinstance(corner_rook, Rook) and not corner_rook.has_moved
 
             self.board_arr[sr][rook_col] = None
             self.board_arr[sr][new_rook_col] = corner_rook
