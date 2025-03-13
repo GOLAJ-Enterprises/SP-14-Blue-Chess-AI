@@ -1,15 +1,14 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
-from collections import defaultdict
 
-from _pieces import Pawn, Rook, Bishop, Knight, Queen, King
-from _color import Color
-from _utils import algebraic_to_coord, coord_to_algebraic, is_valid_coord
-from _eval import Evaluator
+from .pieces import Pawn, Rook, Bishop, Knight, Queen, King
+from ._color import Color
+from ._utils import algebraic_to_coord, coord_to_algebraic, is_valid_coord
+from ._eval import Evaluator
 
 if TYPE_CHECKING:
-    from _pieces import Piece
-    from _move import Move
+    from .pieces import Piece
+    from ._move import Move
 
 
 class Board:

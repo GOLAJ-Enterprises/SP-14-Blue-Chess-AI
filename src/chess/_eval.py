@@ -3,19 +3,19 @@ from typing import TYPE_CHECKING
 from itertools import chain
 import copy
 
-from _utils import is_valid_coord, get_coords_between
+from ._utils import is_valid_coord, get_coords_between
 
 if TYPE_CHECKING:
-    from _pieces import Piece, King
-    from _color import Color
-    from _move import Move
-    from board import Board
+    from .pieces import Piece, King
+    from ._color import Color
+    from ._move import Move
+    from .board import Board
 
 
 class Evaluator:
     @staticmethod
     def is_under_attack(board: Board, pos: tuple[int, int], enemy_color: Color) -> bool:
-        from _pieces import King  # Local import to avoid circular import
+        from pieces import King  # Local import to avoid circular import
 
         enemy_pieces = Evaluator.get_pieces_by_color(board, enemy_color)
 
@@ -42,7 +42,7 @@ class Evaluator:
 
     @staticmethod
     def move_causes_own_check(board: Board, move: Move) -> bool:
-        from _pieces import King  # Local import to avoid circular import
+        from pieces import King  # Local import to avoid circular import
 
         # Make a deep copy of the board
         board_copy = copy.deepcopy(board)
@@ -158,7 +158,7 @@ class Evaluator:
 
     @staticmethod
     def _can_king_block_attack(board: Board, color: Color) -> bool:
-        from _pieces import Rook, Bishop, Queen
+        from pieces import Rook, Bishop, Queen
 
         attacking_piece = None
         king: King = board.kings[color]
@@ -235,7 +235,7 @@ class _DrawEvaluator:
 
     @staticmethod
     def is_insufficient_material(board: Board) -> bool:
-        from _pieces import Bishop
+        from pieces import Bishop
 
         pieces_count = {
             "k": 0,

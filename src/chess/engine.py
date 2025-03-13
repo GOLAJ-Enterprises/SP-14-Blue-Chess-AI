@@ -1,7 +1,7 @@
 from collections import defaultdict
 
-from board import Board
-from _color import Color
+from .board import Board
+from ._color import Color
 
 
 class ChessEngine:

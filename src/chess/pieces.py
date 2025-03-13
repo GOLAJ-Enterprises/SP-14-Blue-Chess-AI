@@ -2,13 +2,13 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-from _move import Move
-from _eval import Evaluator
-from _utils import coord_to_algebraic, is_valid_coord
+from ._move import Move
+from ._eval import Evaluator
+from ._utils import coord_to_algebraic, is_valid_coord
 
 if TYPE_CHECKING:
-    from _color import Color
-    from board import Board
+    from ._color import Color
+    from .board import Board
 
 
 class Piece(ABC):
