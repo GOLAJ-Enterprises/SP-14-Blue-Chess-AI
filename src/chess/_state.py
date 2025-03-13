@@ -1,8 +1,7 @@
 from enum import Enum
 
 
-class GameState(Enum):
+class State(Enum):
     ACTIVE = "Active"  # Normal play
-    CHECK = "Check"
     CHECKMATE = "Checkmate"
-    STALEMATE = "Stalemate"
+    DRAW = "Draw"
