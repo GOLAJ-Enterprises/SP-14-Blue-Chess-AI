@@ -15,21 +15,25 @@ if TYPE_CHECKING:
 class Evaluator:
     @staticmethod
     def is_under_attack(board: Board, pos: tuple[int, int], enemy_color: Color) -> bool:
-        from .pieces import King  # Local import to avoid circular import
+        # TODO refine and add `after_move` bool
+        from .pieces import King, Pawn  # Local import to avoid circular import
 
         enemy_pieces = Evaluator.get_pieces_by_color(board, enemy_color)
+        r, c = pos
 
         for enemy in enemy_pieces:
             if enemy.pos == pos:
                 continue
 
+            er, ec = enemy.pos
+
             if isinstance(enemy, King):
                 # To avoid infinite recursion, check if `pos` is adjacent to enemy king
-                er, ec = enemy.pos
-                pr, pc = pos
-
-                if max(abs(er - pr), abs(ec - pc)) == 1:
+                if max(abs(er - r), abs(ec - c)) == 1:
                     return True  # Enemy king able to capture
+            elif isinstance(enemy, Pawn):
+                if r == er + enemy.direction and abs(ec - c) == 1:
+                    return True
             elif enemy.find_move(board, pos):
                 return True  # Enemy can attack `pos`
 
@@ -42,9 +46,7 @@ class Evaluator:
 
     @staticmethod
     def move_causes_own_check(board: Board, move: Move) -> bool:
-        from .pieces import King  # Local import to avoid circular import
-
-        # Make a deep copy of the board
+        # Make a deep copy of the board to simulate the move
         board_copy = copy.deepcopy(board)
 
         # Grab the piece at `move.start`
@@ -53,8 +55,8 @@ class Evaluator:
         if piece is None:
             raise ValueError("A piece must exist at the start of the move.")
 
-        if isinstance(piece, King):
-            return False  # King manages itself
+        # if isinstance(piece, King):
+        #    return False  # King manages itself
 
         sr, sc = move.start
         er, ec = move.end
@@ -62,6 +64,8 @@ class Evaluator:
         # Move piece
         board_copy.board_arr[sr][sc] = None
         board_copy.board_arr[er][ec] = piece
+        piece.pos = move.end
+        piece.has_moved = True
 
         # Return if the king is in check
         return Evaluator.is_in_check(board_copy, piece.color)

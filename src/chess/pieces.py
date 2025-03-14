@@ -210,9 +210,7 @@ class Knight(Piece):
 
 
 class King(Piece):
-    def get_legal_moves(
-        self, board
-    ):  # TODO King won't move in front of enemy pawn. BUG
+    def get_legal_moves(self, board):
         king_moves = [
             (0, 1),
             (0, -1),
