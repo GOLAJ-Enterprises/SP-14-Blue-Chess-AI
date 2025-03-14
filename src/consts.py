@@ -1,5 +1,10 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
 from pathlib import Path
-import pygame
+
+if TYPE_CHECKING:
+    import pygame
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = SCREEN_WIDTH

@@ -12,10 +12,8 @@ if TYPE_CHECKING:
 
 
 class Board:
-    def __init__(self, fen: str = ""):
-        self.fen = (
-            fen if fen else "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-        )
+    def __init__(self):
+        self.fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
         self.board_arr = []
         self.active_color = ""
         self.castling_availability = ""
@@ -25,7 +23,7 @@ class Board:
 
         self.kings = {Color.WHITE: None, Color.BLACK: None}
 
-        self._parse_fen()
+        self.parse_fen()
 
     def get_piece_at(self, pos: tuple[int, int]) -> Piece | None:
         if not is_valid_coord(pos):
@@ -84,10 +82,8 @@ class Board:
 
         return True
 
-    def _parse_fen(self) -> None:
+    def parse_fen(self) -> None:
         parts = self.fen.split()
-        if len(parts) != 6:
-            raise ValueError("Invalid FEN string")
 
         # Update board state
         self._set_board_from_fen(parts[0])

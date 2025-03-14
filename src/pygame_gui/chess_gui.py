@@ -4,38 +4,27 @@ import pygame
 
 from ._screens import GameScreen
 
-from decorators import require_init
 from consts import ASSETS_PIECES_DIR, SQUARE_SIZE, PIECE_IMAGES
 
 if TYPE_CHECKING:
-    from .gui_event import GUIEvent
+    from .gui_event import GUIEventData
     import pygame
-    from chess import Board
+    from chess import ChessEngine
 
 
 class ChessGUI:
-    def __init__(self):
-        self.surface = None
-        self._initialized = False
-        self.screens = {}
-        self.current_screen = None
-
-    def init(self, surface: pygame.Surface):
+    def __init__(self, surface: pygame.surface.Surface, engine: ChessEngine):
         self.surface = surface
+        self.engine = engine
         ChessGUI._load_piece_images()
-        self.screens["Game"] = GameScreen()
+        self.screens = {"Game": GameScreen()}
         self.current_screen = self.screens["Game"]
-        self._initialized = True
 
-    @require_init
-    def render_screen(self, board: Board) -> None:
-        self.current_screen.render(self.surface, board=board)
+    def render_screen(self) -> None:
+        self.current_screen.render(self.surface, board=self.engine.board)
 
-    @require_init
-    def handle_events(
-        self, events: list[pygame.event.Event], board: Board
-    ) -> dict[GUIEvent, any]:
-        return self.current_screen.handle_events(events, board=board)
+    def handle_events(self, events: list[pygame.event.Event]) -> list[GUIEventData]:
+        return self.current_screen.handle_events(events, board=self.engine.board)
 
     @staticmethod
     def _load_piece_images() -> None:

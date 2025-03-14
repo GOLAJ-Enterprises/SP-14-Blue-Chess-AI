@@ -3,19 +3,19 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 import pygame
 
-from .gui_event import GUIEvent
+from .gui_event import GUIEvent, GUIEventData
 
 from consts import SQUARE_SIZE, PIECE_IMAGES
 
 if TYPE_CHECKING:
-    from chess.board import Board
+    from chess import Board
 
 
 class Screen(ABC):
     @abstractmethod
     def handle_events(
         self, events: list[pygame.event.Event], **kwargs
-    ) -> dict[GUIEvent, any]:
+    ) -> list[GUIEventData]:
         pass
 
     @abstractmethod
@@ -28,7 +28,7 @@ class GameScreen(Screen):
         self.selected_pos = None
 
     def handle_events(self, events, **kwargs):
-        gui_events = {}
+        gui_events = []
         board: Board = kwargs.get("board")
 
         for event in events:
@@ -40,7 +40,9 @@ class GameScreen(Screen):
                 if piece is not None and piece.color.value == board.active_color:
                     self.selected_pos = arr_pos
                 elif self.selected_pos is not None:
-                    gui_events[GUIEvent.MOVE_PIECE] = (self.selected_pos, arr_pos)
+                    gui_events.append(
+                        GUIEventData(GUIEvent.MOVE_PIECE, (self.selected_pos, arr_pos))
+                    )
                     self.selected_pos = None
 
         return gui_events
