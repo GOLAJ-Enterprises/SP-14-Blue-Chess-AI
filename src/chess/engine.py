@@ -28,7 +28,7 @@ class ChessEngine:
     #    self.states_list_idx += 1
     #    self.active_color = Color(self.board.active_color)
 
-    def set_board_state(self, fen: str = "") -> bool:
+    def set_board_state(self, fen: str) -> bool:
         parts = fen.strip().split()
 
         if len(parts) != 6:
