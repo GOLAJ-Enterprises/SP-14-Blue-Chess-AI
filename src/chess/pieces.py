@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING
 from ._move import Move
 from ._eval import Evaluator
 from ._utils import coord_to_algebraic, is_valid_coord
+from ._color import Color
 
 if TYPE_CHECKING:
-    from ._color import Color
     from .board import Board
 
 
@@ -85,7 +85,7 @@ class Rook(SlidingPiece):
 
 
 class Queen(SlidingPiece):
-    def _get_directions_set(self):
+    def _get_directions(self):
         return {  # Queen is a combination of Rook and Bishop
             (1, 0),  # Rook moves
             (-1, 0),
@@ -103,7 +103,7 @@ class Queen(SlidingPiece):
 
 class Pawn(Piece):
     def __init__(self, color, pos):
-        super().__init(color, pos)
+        super().__init__(color, pos)
         self.direction = 1 if self.color is Color.BLACK else -1
         self.blocked = False
 
@@ -163,7 +163,7 @@ class Pawn(Piece):
     def _en_passant_check(self, board: Board, target_pos: tuple[int, int]) -> bool:
         en_passant_target_pos = (self.pos[0], target_pos[1])
         en_passant_target = board.get_piece_at(en_passant_target_pos)
-        pos_to_algebraic = coord_to_algebraic(en_passant_target_pos)
+        pos_to_algebraic = coord_to_algebraic(target_pos)
 
         return (
             en_passant_target is not None

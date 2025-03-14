@@ -36,19 +36,23 @@ class Board:
     def move_piece(self, start: tuple[int, int], end: tuple[int, int]) -> bool:
         # Validation coordinates and existence of the piece
         if not is_valid_coord(start) or not is_valid_coord(end):
+            print(1)
             return False
 
         piece = self.get_piece_at(start)
         if piece is None or piece.color.value != self.active_color:
+            print(2)
             return False  # Piece does not exist or not that color's turn
 
         # Ensure piece can move from `start` to `end`
         move: Move = piece.find_move(self, end)
         if move is None:
+            print(3)
             return False
 
         # Make sure king is not in check after the move
         if Evaluator.move_causes_own_check(self, move):
+            print(4)
             return False
 
         # Update the halfmove clock
@@ -130,7 +134,7 @@ class Board:
         }
 
         rows = board_str.split("/")
-        board = []
+        board_arr = []
         for i, row in enumerate(rows):
             board_row = []
             j = 0
@@ -150,8 +154,9 @@ class Board:
 
                     board_row.append(piece)
                     j += 1
-            board.append(board_row)
-        self.board = board
+            board_arr.append(board_row)
+
+        self.board_arr = board_arr
 
     def _update_halfmove_clock(self, piece: Piece, end: tuple[int, int]) -> None:
         piece_at_end = self.get_piece_at(end)
@@ -160,14 +165,14 @@ class Board:
         else:
             self.halfmove_clock += 1
 
-    def _handle_en_passant(self, _pawn: Pawn) -> None:
+    def _handle_en_passant(self, pawn: Pawn) -> None:
         assert self.en_passant_target != "-"
-        tr, tc = algebraic_to_coord(self.en_passant_target)
-        self.board_arr[tr][tc] = None
+        _, tc = algebraic_to_coord(self.en_passant_target)
+        self.board_arr[pawn.pos[0]][tc] = None
 
     def _set_en_passant_target(self, pawn: Pawn) -> None:
         assert not pawn.has_moved
-        middle_row = pawn[0] - pawn.direction
+        middle_row = pawn.pos[0] + pawn.direction
         target_coord = (middle_row, pawn.pos[1])
         self.en_passant_target = coord_to_algebraic(target_coord)
 

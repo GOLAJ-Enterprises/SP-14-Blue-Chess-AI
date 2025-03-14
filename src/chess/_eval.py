@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 class Evaluator:
     @staticmethod
     def is_under_attack(board: Board, pos: tuple[int, int], enemy_color: Color) -> bool:
-        from pieces import King  # Local import to avoid circular import
+        from .pieces import King  # Local import to avoid circular import
 
         enemy_pieces = Evaluator.get_pieces_by_color(board, enemy_color)
 
@@ -42,7 +42,7 @@ class Evaluator:
 
     @staticmethod
     def move_causes_own_check(board: Board, move: Move) -> bool:
-        from pieces import King  # Local import to avoid circular import
+        from .pieces import King  # Local import to avoid circular import
 
         # Make a deep copy of the board
         board_copy = copy.deepcopy(board)
@@ -158,7 +158,7 @@ class Evaluator:
 
     @staticmethod
     def _can_king_block_attack(board: Board, color: Color) -> bool:
-        from pieces import Rook, Bishop, Queen
+        from .pieces import Rook, Bishop, Queen
 
         attacking_piece = None
         king: King = board.kings[color]
@@ -235,7 +235,7 @@ class _DrawEvaluator:
 
     @staticmethod
     def is_insufficient_material(board: Board) -> bool:
-        from pieces import Bishop
+        from .pieces import Bishop
 
         pieces_count = {
             "k": 0,
