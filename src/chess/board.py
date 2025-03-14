@@ -34,19 +34,23 @@ class Board:
     def move_piece(self, start: tuple[int, int], end: tuple[int, int]) -> bool:
         # Validation coordinates and existence of the piece
         if not is_valid_coord(start) or not is_valid_coord(end):
+            print(1)
             return False
 
         piece = self.get_piece_at(start)
         if piece is None or piece.color.value != self.active_color:
+            print(2)
             return False  # Piece does not exist or not that color's turn
 
         # Ensure piece can move from `start` to `end`
         move: Move = piece.find_move(self, end)
         if move is None:
+            print(3)
             return False
 
         # Make sure king is not in check after the move
         if Evaluator.move_causes_own_check(self, move):
+            print(4)
             return False
 
         # Update the halfmove clock
