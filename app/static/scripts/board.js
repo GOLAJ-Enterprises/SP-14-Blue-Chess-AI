@@ -1,7 +1,19 @@
 let selectedSquare = {};
+const boardSizeInput = document.getElementById("board-size");
+const chessboard = document.getElementById("chessboard");
+let boardAnimateTimeout;
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", () => {
+    updateBoardScale(boardSizeInput.value, false);
     updateBoard(true);
+    
+    setTimeout(() => {
+        chessboard.classList.add("loaded");
+    }, 0);
+});
+
+boardSizeInput.addEventListener("input", (e) => {
+    updateBoardScale(e.target.value, true);
 });
 
 function isLowerCase(str) {
@@ -17,7 +29,23 @@ function toAlgebraic(row, col) {
     return files[col] + (8 - row);
 }
 
-function updateBoard(fadeIn = false) {
+function updateBoardScale(sliderValue, animate) {
+    let squareSize = 70 + 20 * parseInt(sliderValue, 10);
+
+    if (animate) {
+        chessboard.classList.add("animate");
+
+        clearTimeout(boardAnimateTimeout);
+
+        boardAnimateTimeout = setTimeout(() => {
+            chessboard.classList.remove("animate");
+        }, 200);
+    }
+
+    chessboard.style.setProperty("--square-size", `${squareSize}px`)
+}
+
+function updateBoard(fadeIn) {
     fetch("/get/board", {
         method: "GET",
         headers: {"Content-Type": "application/json"},
@@ -47,7 +75,7 @@ function updateBoard(fadeIn = false) {
 
                         setTimeout(() => {
                             img.classList.remove("fade-in");
-                        }, 400);
+                        }, 300);
                     }
 
                     addDragToPiece(img);
@@ -122,8 +150,9 @@ async function handleSquareClick(row, col) {
         selectedSquare.square.classList.add("highlight");
     } else if (!selectedSquareEmpty()) {
         let success = false;
+        const canMoveSquare = (img && img.dataset.color !== selectedSquare.img.dataset.color) || !img;
 
-        if ((img && img.dataset.color !== selectedSquare.img.dataset.color) || !img) {
+        if (canMoveSquare) {
             let fromSquare = toAlgebraic(selectedSquare.square.dataset.row, selectedSquare.square.dataset.col);
             let toSquare = toAlgebraic(square.dataset.row, square.dataset.col);
             success = await movePiece(fromSquare, toSquare);
@@ -136,9 +165,17 @@ async function handleSquareClick(row, col) {
         }
 
         if (success) {
-            updateBoard();
+            updateBoard(false);
             selectedSquare.square.classList.remove("highlight");
             selectedSquare = {};
+        } else if (canMoveSquare) {
+            selectedSquare.square.classList.remove("highlight");
+            selectedSquare = {};
+            square.classList.add("error");
+
+            setTimeout(() => {
+                square.classList.remove("error");
+            }, 500);
         }
     }
 }
@@ -193,27 +230,36 @@ function addDragToPiece(piece) {
                 const target = document.elementFromPoint(e.clientX, e.clientY);
                 const dropSquare = target?.closest(".square");
                 const img = dropSquare?.querySelector("img")
+                
+                const canMoveSquare = dropSquare && ((img && img.dataset.color !== piece.dataset.color) || !img);
 
                 let destinationSquare = sourceSquare;
                 let success = false;
 
-                if (dropSquare && 
-                    ((img && img.dataset.color !== piece.dataset.color) || !img)
-                ) {
-                    const fromSquare = toAlgebraic(sourceSquare.dataset.row, sourceSquare.dataset.col);
-                    const toSquare = toAlgebraic(dropSquare.dataset.row, dropSquare.dataset.col);
-                    
+                const fromSquare = toAlgebraic(sourceSquare.dataset.row, sourceSquare.dataset.col);
+                const toSquare = toAlgebraic(dropSquare.dataset.row, dropSquare.dataset.col);
+
+                if (canMoveSquare) {
+                
                     success = await movePiece(fromSquare, toSquare);
 
                     if (success) {
                         destinationSquare = dropSquare;
                         destinationSquare.appendChild(piece);
-                        updateBoard();
+                        updateBoard(false);
                     }
                 }
 
                 if (!success) {
                     destinationSquare.appendChild(piece);
+                    
+                    if (canMoveSquare && fromSquare !== toSquare) {
+                        dropSquare.classList.add("error");
+
+                        setTimeout(() => {
+                            dropSquare.classList.remove("error");
+                        }, 500);
+                    }
                 }
 
                 piece.style.position = "";

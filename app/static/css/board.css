@@ -1,5 +1,36 @@
+.board-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.board-size-wrapper {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2px;
+    border-radius: 12px;
+    padding: 3px;
+    background: rgb(70, 70, 70) url("/static/images/background.svg") center center no-repeat;
+    background-size: auto;
+    border: 4px solid #444;
+    white-space: nowrap;
+    font-size: 1rem;
+    margin-bottom: 10px;
+}
+label[for="board-size"] {
+    font-weight: 600;
+    font-size: 1.15rem;
+}
+#board-size {
+    accent-color: #2e2e2e;
+}
+
 .fen-form {
-    width: 80%;
+    width: 95%;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -23,6 +54,9 @@
     border-radius: 4px;
     transition: box-shadow 0.2s ease;
 }
+.fen-form input::placeholder {
+    color: rgb(187, 187, 187);
+}
 .fen-form input:focus {
     outline: none;
     box-shadow: 0 0 0 3px #54a1ff80;
@@ -41,20 +75,22 @@
     color: #54a1ffba;
 }
 
-.chessboard-3d {
+
+#chessboard {
+    --square-size: 70px;
     display: grid;
-    grid-template-columns: repeat(8, 100px);
-    grid-template-rows: repeat(8, 100px);
-    transform-style: preserve-3d;
-    perspective: 1000px;
+    grid-template-columns: repeat(8, min(12.5vw, var(--square-size)));
+    grid-template-rows: repeat(8, min(12.5vw, var(--square-size)));
     border: 4px solid #444;
-    margin-top: 2vh;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+.chessboard.animate {
+    transition: grid-template-columns 0.2s ease, grid-template-rows 0.2s ease;
 }
 
 .square {
-    width: 100px;
-    height: 100px;
+    width: 100%;
+    height: 100%;
     position: relative;
     cursor: pointer;
 }
@@ -73,6 +109,10 @@
 .square.highlight:hover, .highlight {
     transition: box-shadow 0.2s ease;
     box-shadow: inset 0 0 0 5px #3ca1ff;
+}
+.square.error {
+    transition: box-shadow 0.2s ease;
+    box-shadow: inset 0 0 0 5px rgb(255, 80, 80);
 }
 
 
@@ -120,8 +160,8 @@
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    width: 800px;
-    height: 50px;
+    width: min(95vw, 725px);
+    padding: 5px;
     font-size: 1.15rem;
     color: #f0d9b5;
     font-weight: 600;
@@ -130,6 +170,8 @@
     background: rgb(70, 70, 70) url("/static/images/background.svg") center center no-repeat;
     background-size: auto;
     border: 4px solid #444;
+    white-space: nowrap;
+    font-size: 1rem;
 }
 
 .reset {
@@ -144,5 +186,15 @@
     to {
         opacity: 1;
         transform: translateY(0px);
+    }
+}
+
+@media (max-width: 768px) {
+    .stats {
+        flex-direction: column;
+    }
+
+    .corner-label {
+        font-size: 0.9rem;
     }
 }
