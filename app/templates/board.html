@@ -1,0 +1,43 @@
+<form class="fen-form" method="POST" action="{{ url_for('main.load_fen') }}">
+    <label for="fen">Custom FEN:</label>
+    <input type="text" name="fen" id="fen" placeholder="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1...">
+    <button type="submit">Load</button>
+</form>
+<div class="flash-wrapper">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+</div>
+<div class="chessboard-3d">
+    {% for row in range(8) %}
+        {% for col in range(8) %}
+            <div class="square {{ 'light' if (row + col) % 2 == 0 else 'dark' }}" onclick="handleSquareClick({{ row }}, {{ col }})" data-row="{{ row }}" data-col="{{ col }}">
+                {% if col == 0 %}
+                    <span class="ranks {{ 'even' if row % 2 == 0 else 'odd' }} corner-label">{{ 8 - row }}</span>
+                {% endif %}
+                {% if row == 7 %}
+                    <span class="files {{ 'even' if col % 2 != 0 else 'odd' }} corner-label">{{ col | chr }}</span>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% endfor %}
+</div>
+<div class="stats">
+    <span>Turn:&nbsp;</span>
+    <span class="active-color">W</span>
+    <span>&nbsp;|&nbsp;Castling rights:&nbsp;</span>
+    <span class="castling-availability">KQkq</span>
+    <span>&nbsp;|&nbsp;En Passant target:&nbsp;</span>
+    <span class="en-passant-target">-</span>
+    <span>&nbsp;|&nbsp;Halfmove clock:&nbsp;</span>
+    <span class="halfmove-clock">0</span>
+    <span>&nbsp;|&nbsp;Fullmove num:&nbsp;</span>
+    <span class="fullmove-num">1</span>
+</div>
+<button class="reset" onclick="resetBoard()">Reset Board</button>

@@ -1,0 +1,148 @@
+.fen-form {
+    width: 80%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+.fen-form label {
+    font-size: 1.25rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.fen-form input {
+    width: 80%;
+    padding: 4px 8px;
+    font-size: 1.05rem;
+    max-width: 32.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    transition: box-shadow 0.2s ease;
+}
+.fen-form input:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px #54a1ff80;
+}
+
+.flash-wrapper {
+    height: 2rem;
+}
+.flash {
+    margin: 5px;
+}
+.flash-error {
+    color: #ff0e0ed3;
+}
+.flash-success {
+    color: #54a1ffba;
+}
+
+.chessboard-3d {
+    display: grid;
+    grid-template-columns: repeat(8, 100px);
+    grid-template-rows: repeat(8, 100px);
+    transform-style: preserve-3d;
+    perspective: 1000px;
+    border: 4px solid #444;
+    margin-top: 2vh;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.square {
+    width: 100px;
+    height: 100px;
+    position: relative;
+    cursor: pointer;
+}
+.square.light {
+    background-color: #f0d9b5;
+}
+.square.dark {
+    background-color: #b58863;
+}
+.square:hover {
+    box-shadow: inset 0 0 0 5px #ffcc00;
+}
+.square:hover .piece {
+    transform: scale(1.08);
+}
+.square.highlight:hover, .highlight {
+    transition: box-shadow 0.2s ease;
+    box-shadow: inset 0 0 0 5px #3ca1ff;
+}
+
+
+.corner-label {
+    position: absolute;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+.ranks {
+    top: 3px;
+    left: 5px;
+}
+.ranks.even {
+    color: #2e2e2e;
+}
+.ranks.odd {
+    color: lightgray;
+}
+.files {
+    bottom: 3px;
+    right: 5px;
+}
+.files.even {
+    color: #2e2e2e;
+}
+.files.odd {
+    color: lightgray;
+}
+
+.piece {
+    width: 90%;
+    height: 90%;
+    margin-left: 5%;
+    margin-top: 5%;
+    transition: transform 0.2s ease;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+.piece.fade-in {
+    animation: fadeInTop 0.3s ease-in-out;
+}
+
+.stats {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    width: 800px;
+    height: 50px;
+    font-size: 1.15rem;
+    color: #f0d9b5;
+    font-weight: 600;
+    border-radius: 12px;
+    margin-top: 5px;
+    background: rgb(70, 70, 70) url("/static/images/background.svg") center center no-repeat;
+    background-size: auto;
+    border: 4px solid #444;
+}
+
+.reset {
+    margin-top: 5px;
+}
+
+@keyframes fadeInTop {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0px);
+    }
+}
