@@ -7,7 +7,7 @@ def create_app():
     from .routes import main
 
     app.register_blueprint(main)
-    app.secret_key = "dev1234"  # CHANGE THIS WHEN FINISHED
+    app.secret_key = "dev1234"  # TODO CHANGE THIS WHEN FINISHED
 
     @app.template_filter("chr")
     def chr_filter(val):

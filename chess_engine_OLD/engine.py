@@ -20,9 +20,15 @@ class ChessEngine:
         }
 
     def move_piece(self, start: str, end: str) -> bool:
+        if len(start) != 2 or len(end) not in {2, 3}:
+            return False
+
+        promotion_piece = end[-1] if len(end) == 3 else ""
         start_pos = algebraic_to_coord(start)
-        end_pos = algebraic_to_coord(end)
-        success = self.board.move_piece(start_pos, end_pos)
+        end_pos = algebraic_to_coord(end if len(end) == 2 else end[0:2])
+
+        status = self.board.move_piece(start_pos, end_pos, promotion_piece)
+        success = status["success"]
 
         if success:
             self._update_stats()
@@ -35,7 +41,10 @@ class ChessEngine:
             # self.states_list_idx += 1
             # self.active_color = Color(self.board.active_color)
 
-        return success
+        return status
+
+    def promote_pawn(self, piece_type: str) -> bool:
+        return self.board.promote_pawn(piece_type)
 
     def set_board_state(self, fen: str) -> bool:
         parts = fen.strip().split()

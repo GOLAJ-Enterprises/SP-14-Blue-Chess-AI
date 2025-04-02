@@ -1,5 +1,5 @@
 <div class="board-container">
-    <div class="board-size-wrapper">
+    <div class="board-size-wrapper frame">
         <label for="board-size">Board Size:</label>
         <input type="range" id="board-size" name="board-size" min="0" max="7" value="0">
     </div>
@@ -20,54 +20,42 @@
                 </div>
             {% endif %}
         {% endwith %}
+        <div></div>
     </div>
 
-    <div class="chessboard" id="chessboard">
-        {% for row in range(8) %}
-            {% for col in range(8) %}
-                <div class="square {{ 'light' if (row + col) % 2 == 0 else 'dark' }}" onclick="handleSquareClick({{ row }}, {{ col }})" data-row="{{ row }}" data-col="{{ col }}">
-                    {% if col == 0 %}
-                        <span class="ranks {{ 'even' if row % 2 == 0 else 'odd' }} corner-label">{{ 8 - row }}</span>
-                    {% endif %}
-                    {% if row == 7 %}
-                        <span class="files {{ 'even' if col % 2 != 0 else 'odd' }} corner-label">{{ col | chr }}</span>
-                    {% endif %}
-                </div>
+    <div class="board-stats-wrapper">
+        <span class="stats">
+            <span class="stat frame">
+                Turn:&nbsp;<span class="active-color">White</span>
+            </span>
+            <span class="stat frame">
+                Castling rights:&nbsp;<span class="castling-availability">KQkq</span>
+            </span>
+            <span class="stat frame">
+                En Passant target:&nbsp;<span class="en-passant-target">-</span>
+            </span>
+            <span class="stat frame">
+                Halfmove clock:&nbsp;<span class="halfmove-clock">0</span>
+            </span>
+            <span class="stat frame">
+                Fullmove count:&nbsp;<span class="fullmove-num">1</span>
+            </span>
+        </span>
+        
+        <div class="chessboard" id="chessboard">
+            {% for row in range(8) %}
+                {% for col in range(8) %}
+                    <div class="square {{ 'light' if (row + col) % 2 == 0 else 'dark' }}" onclick="handleSquareClick({{ row }}, {{ col }})" data-row="{{ row }}" data-col="{{ col }}">
+                        {% if col == 0 %}
+                            <span class="ranks {{ 'even' if row % 2 == 0 else 'odd' }} corner-label">{{ 8 - row }}</span>
+                        {% endif %}
+                        {% if row == 7 %}
+                            <span class="files {{ 'even' if col % 2 != 0 else 'odd' }} corner-label">{{ col | chr }}</span>
+                        {% endif %}
+                    </div>
+                {% endfor %}
             {% endfor %}
-        {% endfor %}
-    </div>
-
-    <div class="stats">
-        <span>
-            <span>|</span>
-            Turn:
-            <span class="active-color">W</span>
-            <span>|</span>
-        </span>
-        <span>
-            <span>|</span>
-            Castling rights:
-            <span class="castling-availability">KQkq</span>
-            <span>|</span>
-        </span>
-        <span>
-            <span>|</span>
-            En Passant target:
-            <span class="en-passant-target">-</span>
-            <span>|</span>
-        </span>
-        <span>
-            <span>|</span>
-            Halfmove clock:
-            <span class="halfmove-clock">0</span>
-            <span>|</span>
-        </span>
-        <span>
-            <span>|</span>
-            Fullmove num:
-            <span class="fullmove-num">1</span>
-            <span>|</span>
-        </span>
+        </div>
     </div>
     
     <button class="reset" onclick="resetBoard()">Reset Board</button>

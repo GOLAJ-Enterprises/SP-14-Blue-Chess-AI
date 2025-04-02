@@ -6,6 +6,7 @@ from ._move import Move
 from ._eval import Evaluator
 from ._utils import coord_to_algebraic, is_valid_coord
 from ._color import Color
+from ._piece_type import PieceType
 
 if TYPE_CHECKING:
     from ._board import Board
@@ -16,6 +17,7 @@ class Piece(ABC):
         self.color = color
         self.pos = pos
         self.has_moved = False
+        self.piece_type = PieceType.NONE
 
     def find_move(
         self,
@@ -35,6 +37,13 @@ class Piece(ABC):
     @abstractmethod
     def get_legal_moves(self, board: Board) -> list[Move]:
         pass
+
+    def __str__(self) -> str:
+        return (
+            self.piece_type.value
+            if self.color is Color.BLACK
+            else self.piece_type.value.upper()
+        )
 
 
 class SlidingPiece(Piece, ABC):
@@ -69,22 +78,28 @@ class SlidingPiece(Piece, ABC):
 
 
 class Bishop(SlidingPiece):
+    def __init__(self, color, pos):
+        super().__init__(color, pos)
+        self.piece_type = PieceType.BISHOP
+
     def _get_directions(self) -> set[tuple[int, int]]:
         return {(1, 1), (-1, -1), (1, -1), (-1, 1)}
 
-    def __str__(self) -> str:
-        return "b" if self.color is Color.BLACK else "B"
-
 
 class Rook(SlidingPiece):
+    def __init__(self, color, pos):
+        super().__init__(color, pos)
+        self.piece_type = PieceType.ROOK
+
     def _get_directions(self) -> set[tuple[int, int]]:
         return {(1, 0), (-1, 0), (0, 1), (0, -1)}
 
-    def __str__(self) -> str:
-        return "r" if self.color is Color.BLACK else "R"
-
 
 class Queen(SlidingPiece):
+    def __init__(self, color, pos):
+        super().__init__(color, pos)
+        self.piece_type = PieceType.QUEEN
+
     def _get_directions(self):
         return {  # Queen is a combination of Rook and Bishop
             (1, 0),  # Rook moves
@@ -97,15 +112,13 @@ class Queen(SlidingPiece):
             (-1, 1),
         }
 
-    def __str__(self) -> str:
-        return "q" if self.color is Color.BLACK else "Q"
-
 
 class Pawn(Piece):
     def __init__(self, color, pos):
         super().__init__(color, pos)
         self.direction = 1 if self.color is Color.BLACK else -1
         self.blocked = False
+        self.piece_type = PieceType.PAWN
 
     def get_legal_moves(self, board):
         pawn_moves = [
@@ -171,11 +184,12 @@ class Pawn(Piece):
             and en_passant_target.color is not self.color
         )
 
-    def __str__(self) -> str:
-        return "p" if self.color is Color.BLACK else "P"
-
 
 class Knight(Piece):
+    def __init__(self, color, pos):
+        super().__init__(color, pos)
+        self.piece_type = PieceType.KNIGHT
+
     def get_legal_moves(self, board):
         knight_moves = [
             (1, 2),
@@ -205,11 +219,12 @@ class Knight(Piece):
 
         return moves
 
-    def __str__(self) -> str:
-        return "n" if self.color is Color.BLACK else "N"
-
 
 class King(Piece):
+    def __init__(self, color, pos):
+        super().__init__(color, pos)
+        self.piece_type = PieceType.KING
+
     def get_legal_moves(self, board):
         king_moves = [
             (0, 1),
@@ -266,6 +281,3 @@ class King(Piece):
                     moves.append(Move(self.pos, new_pos))
 
         return moves
-
-    def __str__(self) -> str:
-        return "k" if self.color is Color.BLACK else "K"

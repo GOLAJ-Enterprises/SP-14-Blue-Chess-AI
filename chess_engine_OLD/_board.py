@@ -21,6 +21,7 @@ class Board:
         self.halfmove_clock = 0
         self.fullmove_num = 1
 
+        self.pawn_to_promote = None
         self.kings = {Color.WHITE: None, Color.BLACK: None}
 
         self.parse_fen()
@@ -31,23 +32,30 @@ class Board:
         row, col = pos
         return self.board_arr[row][col]
 
-    def move_piece(self, start: tuple[int, int], end: tuple[int, int]) -> bool:
+    def move_piece(
+        self, start: tuple[int, int], end: tuple[int, int], promotion_piece: str
+    ) -> dict[str, bool]:
+        status = {
+            "success": False,
+            "promotion": False,
+        }
+
         # Validation coordinates and existence of the piece
         if not is_valid_coord(start) or not is_valid_coord(end):
-            return False
+            return status
 
         piece = self.get_piece_at(start)
         if piece is None or piece.color.value != self.active_color:
-            return False  # Piece does not exist or not that color's turn
+            return status  # Piece does not exist or not that color's turn
 
         # Ensure piece can move from `start` to `end`
         move: Move = piece.find_move(self, end)
         if move is None:
-            return False
+            return status
 
         # Make sure king is not in check after the move
         if Evaluator.move_causes_own_check(self, move):
-            return False
+            return status
 
         # Update the halfmove clock
         self._update_halfmove_clock(piece, end)
@@ -65,7 +73,11 @@ class Board:
             self.en_passant_target = "-"
 
         if move.promote_pawn:
-            piece = self._handle_promotion(piece, end)
+            assert isinstance(piece, Pawn)
+            self._handle_pawn_promotion(piece, promotion_piece)
+            status["promotion"] = True
+        else:
+            self.pawn_to_promote = None
 
         if move.castling:
             self._handle_castling(piece, start, end)
@@ -80,6 +92,32 @@ class Board:
         # Post move updates
         self._post_move_updates(piece)
 
+        status["success"] = True
+        return status
+
+    def _handle_pawn_promotion(self, pawn: Pawn, piece_type: str) -> bool:
+        if len(piece_type) != 1:
+            return False
+
+        piece_type = piece_type.lower()
+
+        pieces = {
+            "q": Queen,
+            "b": Bishop,
+            "r": Rook,
+            "n": Knight,
+        }
+
+        if piece_type not in pieces:
+            return False
+
+        color = pawn.color
+        pos = pawn.pos
+        row, col = pos
+
+        new_piece = pieces[piece_type](color, pos)
+
+        self.board_arr[row][col] = new_piece
         return True
 
     def parse_fen(self) -> None:
@@ -168,13 +206,12 @@ class Board:
         target_coord = (middle_row, pawn.pos[1])
         self.en_passant_target = coord_to_algebraic(target_coord)
 
-    def _handle_promotion(self, pawn: Pawn, end: tuple[int, int]) -> Piece:
+    def _handle_promotion(self, pawn: Pawn, end: tuple[int, int]) -> None:
         er, _ = end
         assert (pawn.color is Color.BLACK and er == 7) or (
             pawn.color is Color.WHITE and er == 0
         )
-        # TODO Get user choice; defaulting to Queen for now
-        return Queen(pawn.color, pawn.pos)
+        self.pawn_to_promote = pawn
 
     def _handle_castling(
         self, piece: King, start: tuple[int, int], end: tuple[int, int]

@@ -97,7 +97,7 @@ function updateBoard(fadeIn) {
         const halfmoveSpan = document.querySelector(".halfmove-clock");
         const fullmoveSpan = document.querySelector(".fullmove-num");
 
-        colorSpan.innerHTML = data.color.toUpperCase();
+        colorSpan.innerHTML = data.color.toLowerCase() === "w" ? "White" : "Black";
         castlingSpan.innerHTML = data.castling_rights;
         enPassantSpan.innerHTML = data.en_passant;
         halfmoveSpan.innerHTML = data.halfmove;
