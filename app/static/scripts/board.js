@@ -103,40 +103,50 @@ function updateBoard(fadeIn) {
         halfmoveSpan.innerHTML = data.halfmove;
         fullmoveSpan.innerHTML = data.fullmove;
     });
+
+    fetch("/get/state", {
+        method: "GET",
+        headers: {"Content-Type": "application/json"},
+    })
+    .then(res => res.json())
+    .then(data => {
+        const stateSpan = document.querySelector(".game-state");
+
+        stateSpan.innerHTML = data.state;
+    });
 }
 
 async function movePiece(fromSquare, toSquare) {
     return fetch("/move", {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-            from: fromSquare,
-            to: toSquare,
-        })
+        headers: {"Content-Type": "text/plain"},
+        body: fromSquare + toSquare
     })
     .then(res => res.json())
     .then(data => {
-        if (data.success) {
-            return true;
-        }
-        return false;
-    })
+        return data.success === true;
+    });
 }
 
 function resetBoard() {
-    fetch("/reset", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            if (!selectedSquareEmpty()) {
-                selectedSquare.square.classList.remove("highlight");
-                selectedSquare = {};
-            }
-            updateBoard(true);
+    fetch("/reset", {method: "POST"})
+    .then(() => {
+        if (!selectedSquareEmpty()) {
+            selectedSquare.square.classList.remove("highlight");
+            selectedSquare = {};
         }
+        updateBoard(true);
+    });
+}
+
+function undoMove() {
+    fetch("/undo", {method: "POST"})
+    .then(() => {
+        if (!selectedSquareEmpty()) {
+            selectedSquare.square.classList.remove("highlight");
+            selectedSquare = {};
+        }
+        updateBoard(true);
     });
 }
 
@@ -153,8 +163,14 @@ async function handleSquareClick(row, col) {
         const canMoveSquare = (img && img.dataset.color !== selectedSquare.img.dataset.color) || !img;
 
         if (canMoveSquare) {
-            let fromSquare = toAlgebraic(selectedSquare.square.dataset.row, selectedSquare.square.dataset.col);
-            let toSquare = toAlgebraic(square.dataset.row, square.dataset.col);
+            const fromSquare = selectedSquare.square.id;
+            let toSquare = square.id;
+
+            if (selectedSquare.img.src.endsWith("p.svg") && 
+            (toSquare.endsWith("1") || toSquare.endsWith("8"))) {
+                toSquare += "q";
+            }
+
             success = await movePiece(fromSquare, toSquare);
         }
 
@@ -186,9 +202,10 @@ function addDragToPiece(piece) {
 
     piece.addEventListener("mousedown", (e) => {
         e.preventDefault();
-        
+
         const sourceSquare = piece.parentElement;
-        draggedPiece = piece;
+        const chessboard = document.getElementById("chessboard");
+        const boardRect = chessboard.getBoundingClientRect();
 
         startX = e.clientX;
         startY = e.clientY;
@@ -229,18 +246,21 @@ function addDragToPiece(piece) {
             if (isDragging) {
                 const target = document.elementFromPoint(e.clientX, e.clientY);
                 const dropSquare = target?.closest(".square");
-                const img = dropSquare?.querySelector("img")
-                
+                const img = dropSquare?.querySelector("img");
+
                 const canMoveSquare = dropSquare && ((img && img.dataset.color !== piece.dataset.color) || !img);
 
                 let destinationSquare = sourceSquare;
                 let success = false;
 
-                const fromSquare = toAlgebraic(sourceSquare.dataset.row, sourceSquare.dataset.col);
-                const toSquare = toAlgebraic(dropSquare.dataset.row, dropSquare.dataset.col);
+                const fromSquare = sourceSquare.id;
+                let toSquare = dropSquare?.id;
 
-                if (canMoveSquare) {
-                
+                if (canMoveSquare && dropSquare) {
+                    if (piece.src.endsWith("p.svg") && (toSquare.endsWith("1") || toSquare.endsWith("8"))) {
+                        toSquare += "q";
+                    }
+
                     success = await movePiece(fromSquare, toSquare);
 
                     if (success) {
@@ -252,8 +272,8 @@ function addDragToPiece(piece) {
 
                 if (!success) {
                     destinationSquare.appendChild(piece);
-                    
-                    if (canMoveSquare && fromSquare !== toSquare) {
+
+                    if (canMoveSquare && dropSquare && fromSquare !== toSquare) {
                         dropSquare.classList.add("error");
 
                         setTimeout(() => {
@@ -268,16 +288,23 @@ function addDragToPiece(piece) {
                 piece.style.width = "";
                 piece.style.height = "";
                 piece.style.margin = "";
-
+                piece.style.top = "";
+                piece.style.left = "";
             }
 
             isDragging = false;
-            draggedPiece = null;
-        }, {once: true});
-    });
+        }, { once: true });
 
-    function moveAt(x, y) {
-        piece.style.left = x - piece.offsetWidth / 2 + "px";
-        piece.style.top = y - piece.offsetHeight / 2 + "px";
-    }
+        function moveAt(x, y) {
+            const halfWidth = piece.offsetWidth / 2;
+            const halfHeight = piece.offsetHeight / 2;
+
+            // Clamp x/y to chessboard bounds
+            const clampedX = Math.max(boardRect.left + halfWidth, Math.min(x, boardRect.right - halfWidth));
+            const clampedY = Math.max(boardRect.top + halfHeight, Math.min(y, boardRect.bottom - halfHeight));
+
+            piece.style.left = clampedX - halfWidth + "px";
+            piece.style.top = clampedY - halfHeight + "px";
+        }
+    });
 }

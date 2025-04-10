@@ -156,6 +156,9 @@ def str_to_castling_rights(fen_castling: str) -> int:
     :param str fen_castling: The castling availability string from FEN (e.g., 'KQkq' or '-').
     :return int: Bitfield representing available castling rights.
     """
+    if fen_castling == "-":
+        return 0
+
     rights = 0
     for c in fen_castling:
         rights |= CHAR_TO_CASTLING_BIT[c]  # Accumulate castling bits

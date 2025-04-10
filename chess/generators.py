@@ -258,21 +258,22 @@ class PseudoLegalMoveGenerator:
         enemy_occupied = self.board.occupied[opp_color(color)]
         target_bb_atk = PAWN_ATK_MASKS[color][bitpos]
         targets = target_bb_atk & enemy_occupied
-        ep_sq = self.board.en_passant_square
 
         # Loop through each capturable square
         while targets:
             to_sq, targets = pop_lsb(targets)
 
-            if ep_sq is not None and to_sq == ep_sq:
-                # En passant capture
-                pseudo_moves.add(Move(bitpos, to_sq))
-            elif mask(to_sq) & PAWN_PROMOTION_RANK[color]:
+            if mask(to_sq) & PAWN_PROMOTION_RANK[color]:
                 # Capture that results in promotion
                 self._add_pawn_promotion_moves(pseudo_moves, bitpos, to_sq)
             else:
                 # Regular diagonal capture
                 pseudo_moves.add(Move(bitpos, to_sq))
+
+        # Explicitly check for en passant separately
+        ep_sq = self.board.en_passant_square
+        if ep_sq is not None and mask(ep_sq) & target_bb_atk:
+            pseudo_moves.add(Move(bitpos, ep_sq))
 
     def _add_pawn_promotion_moves(
         self, pseudo_moves: set[Move], bitpos: int, to_sq: int

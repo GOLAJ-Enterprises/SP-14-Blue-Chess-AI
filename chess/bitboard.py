@@ -25,9 +25,12 @@ from .consts import STARTING_FEN, DIRECTIONS_MAP, RAYS
 from .utils import (
     is_valid_fen,
     algebraic_to_bitpos,
+    bitpos_to_algebraic,
     get_color_from_symbol,
+    get_color_symbol,
     get_piece_symbol,
     str_to_castling_rights,
+    castling_rights_to_str,
     get_bitboard_from_fen,
     opp_color,
     ray_between,
@@ -68,6 +71,8 @@ class Board:
     """Represents the full game state, including piece positions, castling rights, and move generation."""
 
     def __init__(self, fen: str = STARTING_FEN):
+        fen = fen.strip()
+
         # Initialize generators and rule evaluator
         self.attack_map_gen = AttackMapGenerator(self)
         self.pseudo_move_gen = PseudoLegalMoveGenerator(self)
@@ -102,17 +107,17 @@ class Board:
                 0x0000_0000_0000_0010,  # King (e1)
             ],
         ]
+
+        # Cache
+        self.pinned: list[int]
+        self.check_mask: int
+        self.attacked: list[int]
+        self.pseudo_legal_moves: list[set[Move]]
+        self.legal_moves: set[Move]
         self.occupied = [
             0xFFFF_0000_0000_0000,  # BLACK
             0x0000_0000_0000_FFFF,  # WHITE
         ]
-
-        # Cache
-        self.pinned = [0, 0]
-        self.check_mask = 0xFFFF_FFFF_FFFF_FFFF
-        self.attacked = [0x7EFF_FF00_0000_0000, 0x0000_0000_00FF_FF7E]
-        self.pseudo_legal_moves: list[set[Move]] = [set(), set()]
-        self.legal_moves: set[Move] = set()
 
         if fen != STARTING_FEN and is_valid_fen(fen):
             self.set_from_fen(fen)
@@ -129,6 +134,8 @@ class Board:
         :param str fen: The FEN string to parse.
         :return bool: True if FEN is valid and successfully applied, otherwise False.
         """
+        fen = fen.strip()
+
         if not is_valid_fen(fen):
             return False
 
@@ -154,6 +161,8 @@ class Board:
         # Recompute derived state
         self._build_occupied()
         self._post_init()
+
+        return True
 
     def is_in_check(self) -> bool:
         """Checks if the active player's king is currently in check.
@@ -193,7 +202,6 @@ class Board:
         :return bool: True if the move was made, otherwise False.
         """
         if self.game_state != ACTIVE or not self.is_legal(move):
-            print(self.game_state)
             return False
 
         # Apply the move and store undo information
@@ -351,6 +359,28 @@ class Board:
             board[row][col] = symbol.upper() if color == WHITE else symbol.lower()
 
         return board
+
+    def get_fen_stats(self) -> tuple[str]:
+        ac = get_color_symbol(self.active_color)
+        cr = castling_rights_to_str(self.castling_rights)
+        eps = (
+            bitpos_to_algebraic(self.en_passant_square)
+            if self.en_passant_square is not None
+            else "-"
+        )
+        hc = str(self.halfmove_clock)
+        fc = str(self.fullmove_count)
+
+        return (
+            ac,
+            cr,
+            eps,
+            hc,
+            fc,
+        )
+
+    def get_board_state(self) -> str:
+        return {ACTIVE: "Active", CHECKMATE: "Checkmate", DRAW: "Draw"}[self.game_state]
 
     def _same_color_square_bishops(self) -> bool:
         """Checks if both bishops (one per side) are on the same color square.

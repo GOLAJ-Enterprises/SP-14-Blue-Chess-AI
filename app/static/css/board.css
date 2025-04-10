@@ -190,6 +190,10 @@ label[for="board-size"] {
     margin-top: 20px;
 }
 
+.undo {
+    margin-top: 10px;
+}
+
 @keyframes fadeInTop {
     from {
         opacity: 0;

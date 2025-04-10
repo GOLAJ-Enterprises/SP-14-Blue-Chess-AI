@@ -26,6 +26,9 @@
     <div class="board-stats-wrapper">
         <span class="stats">
             <span class="stat frame">
+                Game state:&nbsp;<span class="game-state">Active</span>
+            </span>
+            <span class="stat frame">
                 Turn:&nbsp;<span class="active-color">White</span>
             </span>
             <span class="stat frame">
@@ -45,7 +48,13 @@
         <div class="chessboard" id="chessboard">
             {% for row in range(8) %}
                 {% for col in range(8) %}
-                    <div class="square {{ 'light' if (row + col) % 2 == 0 else 'dark' }}" onclick="handleSquareClick({{ row }}, {{ col }})" data-row="{{ row }}" data-col="{{ col }}">
+                    {% set uci_name = chr(97 + col) ~ (8 - row) %}
+                    <div id="{{ uci_name }}"
+                        class="square {{ 'light' if (row + col) % 2 == 0 else 'dark' }}"
+                        onclick="handleSquareClick({{ row }}, {{ col }})"
+                        data-row="{{ row }}"
+                        data-col="{{ col }}">
+
                         {% if col == 0 %}
                             <span class="ranks {{ 'even' if row % 2 == 0 else 'odd' }} corner-label">{{ 8 - row }}</span>
                         {% endif %}
@@ -59,4 +68,5 @@
     </div>
     
     <button class="reset" onclick="resetBoard()">Reset Board</button>
+    <button class="undo" onclick="undoMove()">Undo Move</button>
 </div>
