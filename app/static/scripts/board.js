@@ -117,30 +117,30 @@ function updateBoard(fadeIn) {
 }
 
 async function movePiece(fromSquare, toSquare) {
-    return fetch("/move", {
+    const res = await fetch("/move", {
         method: "POST",
-        headers: {"Content-Type": "text/plain"},
+        headers: { "Content-Type": "text/plain" },
         body: fromSquare + toSquare
-    })
-    .then(res => res.json())
-    .then(data => {
-        return data.success === true;
     });
+
+    const data = await res.json();
+
+    if (data.success === true) {
+        const aiSuccess = await aiMovePiece(); // wait for AI move to complete
+        return aiSuccess;
+    }
+
+    return false;
+}
+
+async function aiMovePiece() {
+    const res = await fetch("/move_ai", { method: "POST" });
+    const data = await res.json();
+    return data.success === true;
 }
 
 function resetBoard() {
     fetch("/reset", {method: "POST"})
-    .then(() => {
-        if (!selectedSquareEmpty()) {
-            selectedSquare.square.classList.remove("highlight");
-            selectedSquare = {};
-        }
-        updateBoard(true);
-    });
-}
-
-function undoMove() {
-    fetch("/undo", {method: "POST"})
     .then(() => {
         if (!selectedSquareEmpty()) {
             selectedSquare.square.classList.remove("highlight");

@@ -1,8 +1,10 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
-import chess
+import bitboarder
+from app.ai import ChessCNN
 
 main = Blueprint("main", __name__)
-chess_board = chess.Board()
+chess_board = bitboarder.Board()
+ai = ChessCNN(chess_board, "cuda")
 
 
 @main.route("/")
@@ -54,7 +56,17 @@ def load_fen():
 @main.route("/move", methods=["POST"])
 def move():
     uci = request.get_data(as_text=True)
-    move = chess.Move.from_uci(uci)
+    move = bitboarder.Move.from_uci(uci)
+    print(chess_board.legal_moves)
+
+    success = chess_board.push(move)
+    return jsonify({"success": success})
+
+
+@main.route("/move_ai", methods=["POST"])
+def move_ai():
+    uci = ai.predict(use_mcts=True, visits=10)
+    move = bitboarder.Move.from_uci(uci)
 
     success = chess_board.push(move)
     return jsonify({"success": success})
@@ -63,10 +75,4 @@ def move():
 @main.route("/reset", methods=["POST"])
 def reset():
     chess_board.reset()
-    return "", 204
-
-
-@main.route("/undo", methods=["POST"])
-def undo():
-    chess_board.undo()
     return "", 204
