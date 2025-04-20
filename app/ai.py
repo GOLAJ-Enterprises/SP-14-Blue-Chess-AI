@@ -68,7 +68,6 @@ class ChessCNN:
                 move_uci = mcts.search(self.board, num_visits=visits)
                 if move_uci is None:
                     raise RuntimeError("MCTS returned no move: board appears terminal.")
-                print(f"[MCTS] Selected move: {move_uci}")
                 return move_uci
 
             # Direct inference without MCTS
@@ -94,5 +93,4 @@ class ChessCNN:
 
             best_index = torch.argmax(masked).item()
             uci = self.index_to_move[best_index]
-            print(f"[Direct] Selected move: {uci}")
             return uci

@@ -57,7 +57,6 @@ def load_fen():
 def move():
     uci = request.get_data(as_text=True)
     move = bitboarder.Move.from_uci(uci)
-    print(chess_board.legal_moves)
 
     success = chess_board.push(move)
     return jsonify({"success": success})
