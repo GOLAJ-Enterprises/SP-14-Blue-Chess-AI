@@ -4,7 +4,7 @@ from app.ai import ChessCNN
 
 main = Blueprint("main", __name__)
 chess_board = bitboarder.Board()
-ai = ChessCNN(chess_board, "cuda")
+ai = ChessCNN(chess_board, "cpu")
 
 
 @main.route("/")
