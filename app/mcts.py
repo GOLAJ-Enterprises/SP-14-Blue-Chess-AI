@@ -4,15 +4,15 @@ import json
 import random
 import torch
 import torch.nn.functional as F
-from pathlib import Path
 from typing import Optional, Tuple, List, Dict, TYPE_CHECKING
+
+from .rp import resource_path
 
 if TYPE_CHECKING:
     from bitboarder import Board
 
 # Load move index mapping
-BASE_DIR = Path(__file__).resolve().parent.parent
-MOVE_INDEX_PATH = BASE_DIR / "app" / "data" / "move_index_dict.json"
+MOVE_INDEX_PATH = resource_path("app/data/move_index_dict.json")
 
 with MOVE_INDEX_PATH.open("r") as f:
     move_index_dict: Dict[str, int] = json.load(f)

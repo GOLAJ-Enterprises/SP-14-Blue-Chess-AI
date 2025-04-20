@@ -1,0 +1,5 @@
+# Dependencies for data preparation and AI training
+python-chess
+tqdm
+torch
+numpy
