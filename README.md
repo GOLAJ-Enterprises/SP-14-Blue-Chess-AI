@@ -58,7 +58,6 @@ SP-14-Blue-Chess-AI/
 ## Notes
 - The `.exe` works completely offline — it launches the local server and opens the game in your browser.
 - You can rename `run.exe` to something like `chess-ai.exe` before distributing.
-- To prevent unnecessary bloat in version control, **don’t commit the `dist/` or `.exe` files to GitHub**. Use `.gitignore` or upload the binary via GitHub Releases.
 
 ## Clean Build (Optional)
 
