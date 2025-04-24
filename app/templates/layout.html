@@ -2,15 +2,22 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <title>Chess AI Engine</title>
         <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
         {% block head %}{% endblock %}
+        <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet">
+        <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
     </head>
 
     <body>
+        <div class="title-bar">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="SP-14 Chess AI Logo" class="logo" onclick="goHome()">
+            <div class="lan-status-container">
+                <div class="lan-status" id="lan-status" title="LAN connection status"></div>
+                <p>LAN</p>
+            </div>
+        </div>
         {% block content %}{% endblock %}
-        {% block scripts %}{% endblock %}
-        <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
         <script src="{{ url_for('static', filename='scripts/layout.js') }}"></script>
+        {% block scripts %}{% endblock %}
     </body>
 </html>

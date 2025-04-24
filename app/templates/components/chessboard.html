@@ -1,0 +1,22 @@
+<div class="chessboard-container">
+    <div class="chessboard" id="chessboard">
+        {% for row in range(8) %}
+            {% for col in range(8) %}
+                {% set uci_name = chr(97 + col) ~ (8 - row) %}
+                <div id="{{ uci_name }}"
+                    class="square {{ 'light' if (row + col) % 2 == 0 else 'dark' }}"
+                    onclick="handleSquareClick(this)"
+                    data-piece-color=""
+                    data-piece-type="">
+
+                    {% if col == 0 %}
+                        <span class="ranks {{ 'even' if row % 2 == 0 else 'odd' }} corner-label">{{ 8 - row }}</span>
+                    {% endif %}
+                    {% if row == 7 %}
+                        <span class="files {{ 'even' if col % 2 != 0 else 'odd' }} corner-label">{{ col | chr }}</span>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+</div>

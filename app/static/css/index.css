@@ -1,25 +1,47 @@
-.page-title {
-    font-size: 3rem;
-    font-weight: 700;
-    color: #f0d9b5;
-    margin-top: 1.5rem;
-    margin-bottom: 0.5rem;
-    letter-spacing: 1px;
-    text-shadow: 1px 1px 2px #ffffff20;
+.home-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
     text-align: center;
-}
-.page-title::after {
-    content: "";
-    display: block;
-    width: 18.75rem;
-    margin: 0.4rem auto 0;
-    border-bottom: 3px solid lightgray;
-    border-radius: 2px;
+    color: white;
 }
 
-.subtitle {
-    font-weight: 500;
-    font-size: 0.95rem;
-    margin-bottom: 20px;
-    text-align: center;
+.welcome h2 {
+    font-size: 2.4rem;
+    margin-bottom: 10px;
+}
+
+.welcome p {
+    font-size: 1.4rem;
+    margin-bottom: 40px;
+}
+
+.mode-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.mode-buttons button {
+    background: #222;
+    color: white;
+    border: 2px solid #666;
+    padding: 16px 24px;
+    font-size: 1.2rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.1s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    width: 320px;
+}
+
+.mode-buttons button:hover {
+    background: #333;
+}
+
+.mode-buttons button:active {
+    transform: scale(0.96);
 }

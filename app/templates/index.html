@@ -1,16 +1,24 @@
 {% extends "layout.html" %}
 
 {% block head %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/board.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
 {% endblock %}
 
 {% block content %}
-    <h1 class="page-title">SP-14 Blue Chess AI</h1>
-    <p class="subtitle">Play against a human or test your skills vs AI</p>
-    {% include "board.html" %}
+<div class="home-container">
+    <div class="welcome">
+        <h2>Welcome to SP-14 Blue Chess AI</h2>
+        <p>Choose a game mode to begin:</p>
+    </div>
+
+    <div class="mode-buttons">
+        <button onclick="startPvP()">Player vs Player (Same Machine)</button>
+        <button onclick="startPvAI()">Player vs AI</button>
+        <button onclick="startLAN()">Player vs Player (LAN)</button>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
-    <script src="{{ url_for('static', filename='scripts/board.js') }}"></script>
+<script src="{{ url_for('static', filename='scripts/index.js') }}"></script>
 {% endblock %}

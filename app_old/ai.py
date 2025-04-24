@@ -42,7 +42,7 @@ class ChessCNN:
         self.move_index_dict = ChessCNN._move_index_dict
         self.index_to_move = ChessCNN._index_to_move
 
-    def predict(self, use_mcts: bool = True, visits: int = 10) -> str:
+    def predict(self, use_mcts: bool = True, visits: int = 50) -> str:
         """Predicts the best move using either MCTS or direct inference."""
         if use_mcts:
             mcts = MonteCarloTreeSearch(self.model, self.device)

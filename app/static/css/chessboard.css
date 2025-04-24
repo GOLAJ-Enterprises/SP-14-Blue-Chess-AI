@@ -1,0 +1,159 @@
+.chessboard-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    transition: transform 1s ease-in-out;
+    margin-top: 20px;
+}
+.chessboard-container.rotated {
+    transform: rotate(180deg);
+}
+
+#chessboard {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows:    repeat(8, 1fr);
+    width: min(80vw, 100vh - 400px);
+    aspect-ratio: 1 / 1;
+    border: 4px solid #444;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    margin: 0 auto;
+    z-index: 1;
+    min-height: 560px;
+    min-width: 560px;
+}
+#chessboard.animate {
+    transition: grid-template-columns 0.2s ease, grid-template-rows 0.2s ease;
+}
+
+.chessboard-container.rotated .ranks {
+    transform: rotate(180deg);
+}
+
+.chessboard-container.rotated .files {
+    transform: rotate(180deg);
+}
+
+.chessboard-container.rotated .piece {
+    transform: rotate(180deg);
+}
+
+.chessboard-container.rotated .square:hover .piece {
+    transform: rotate(180deg) scale(1.1);
+}
+
+
+.square {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 10%;
+    box-sizing: border-box;
+}
+
+.square.light {
+    background-color: #f0d9b5;
+}
+
+.square.dark {
+    background-color: #b58863;
+}
+
+.corner-label {
+    position: absolute;
+    font-weight: 600;
+    font-size: 0.85rem;
+    z-index: 2;
+    user-select: none;
+}
+
+.ranks {
+    top: 4px;
+    left: 4px;
+}
+
+.files {
+    bottom: 4px;
+    right: 4px;
+}
+
+.ranks.even {
+    color: #2e2e2e;
+}
+
+.ranks.odd {
+    color: lightgray;
+}
+
+.files.even {
+    color: #2e2e2e;
+}
+
+.files.odd {
+    color: lightgray;
+}
+
+.piece {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    opacity: 0;
+    user-select: none;
+}
+
+.piece-entry-white {
+    animation: slide-in-right 0.1s ease-out forwards;
+}
+
+.piece-entry-black {
+    animation: slide-in-left 0.1s ease-out forwards;
+}
+
+/* When board is rotated, override animation */
+.chessboard-container.rotated .piece-entry-white {
+    animation: slide-in-left-rotated 0.1s ease-out forwards;
+}
+
+.chessboard-container.rotated .piece-entry-black {
+    animation: slide-in-right-rotated 0.1s ease-out forwards;
+}
+
+.square:hover .piece {
+    transform: scale(1.1);
+    transition: transform 0.2s ease;
+}
+.square.selected {
+    transition: box-shadow 0.2s ease;
+    box-shadow: inset 0 0 0 5px #3ca1ff;
+}
+.square.error {
+    transition: box-shadow 0.2s ease;
+    box-shadow: inset 0 0 0 5px rgb(255, 80, 80);
+}
+
+@keyframes slide-in-left {
+    from { transform: translateX(-150%); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slide-in-right {
+    from { transform: translateX(150%); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slide-in-left-rotated {
+    from { transform: rotate(180deg) translateX(150%); opacity: 0; }
+    to   { transform: rotate(180deg) translateX(0); opacity: 1; }
+}
+
+@keyframes slide-in-right-rotated {
+    from { transform: rotate(180deg) translateX(-150%); opacity: 0; }
+    to   { transform: rotate(180deg) translateX(0); opacity: 1; }
+}
