@@ -39,7 +39,7 @@ def run_server():
 
     # Open in a native window
     webview.create_window(
-        "Chess",
+        "SP-14 Blue Chess AI",
         f"http://{host}:{port}",
         resizable=True,
         width=1024,
