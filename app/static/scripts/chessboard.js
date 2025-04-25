@@ -54,10 +54,16 @@ function resetBoard() {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
+                selectedSquare?.classList.remove("selected");
                 selectedSquare = null;
                 clearBoard();
                 renderInitialPosition();
                 updateStats();
+
+                // Close promotion selection if open
+                const promotionContainer = document.querySelector('.promotion-container');
+                promotionContainer.classList.add('hidden');
+                pendingPromotion = null;
 
                 // Reinitialize turn after reset
                 fetch("/get/turn")
@@ -141,13 +147,22 @@ function updateStats() {
                 if (kingSquare) kingSquare.classList.add("checked");
             }
 
-            // Recompute whether the human has moved already
+            // Recompute whether the player has moved already
             if (gameMode === "ai") {
                 if (playerColor === "w") {
                     hasHumanMoved = data.ply >= 1;
                 } else {
                     hasHumanMoved = data.ply >= 2;
                 }
+                window.undoButton.disabled = !hasHumanMoved;
+
+                if (hasHumanMoved) {
+                    window.undoButton.classList.remove("disabled");
+                } else {
+                    window.undoButton.classList.add("disabled");
+                }
+            } else if (gameMode === "pvp") {
+                hasHumanMoved = data.ply >= 1;
                 window.undoButton.disabled = !hasHumanMoved;
 
                 if (hasHumanMoved) {
@@ -352,6 +367,8 @@ function sendMove(uci, from, to, promotion) {
 }
 
 function showPromotionOptions() {
+    if (gameOver) return;
+
     const container = document.querySelector('.promotion-container');
     container.classList.remove('hidden');
 
@@ -568,6 +585,11 @@ function aiMove() {
 
 
 function undoMove() {
+    // Ensure promotion container is closed
+    const promotionContainer = document.querySelector('.promotion-container');
+    promotionContainer.classList.add('hidden');
+    pendingPromotion = null;
+
     // If player is black vs AI and hasn't moved, do nothing
     if (gameMode === "ai" && playerColor === "b" && !hasHumanMoved) return;
 
