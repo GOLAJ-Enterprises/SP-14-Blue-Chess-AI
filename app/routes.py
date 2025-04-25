@@ -1,10 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify
-from app.decorators import requires_mode, local_only, requires_lan_player
 from app import state
 from bitboarder import Move, WHITE
-import uuid
-import socket
-
 
 main = Blueprint("main", __name__)
 
@@ -18,35 +14,26 @@ def index():
 @main.route("/play")
 def play():
     color = request.args.get("color")
-    create = request.args.get("create")
-    game = request.args.get("game")
+    mode = request.args.get("mode")
 
-    if request.args.get("pvp") == "true":
+    if mode == "pvp":
         state.active_mode = "pvp"
-    elif request.args.get("ai") == "true":
-        state.active_mode = f"ai_{color}" if color else "ai"
-    elif request.args.get("lan") == "true":
-        state.active_mode = "lan"
+    elif mode == "ai":
+        state.active_mode = f"ai_{color}" if color else "ai_menu"
     else:
         state.active_mode = None
 
     return render_template(
         "play.html",
-        mode=state.active_mode if state.active_mode else "unknown",
+        mode=mode if mode else "unknown",
         color=color,
-        create=create,
-        game=game,
         chr=chr,
     )
 
 
 @main.route("/get/turn")
 def get_turn():
-    if state.active_mode == "lan":
-        if not state.active_lan_game:
-            return jsonify({"error": "No active LAN game"})
-        board = state.active_lan_game.board
-    elif state.active_mode in state.game_states:
+    if state.active_mode in state.game_states:
         board = state.game_states[state.active_mode].board
     else:
         return jsonify({"error": "Invalid game mode"})
@@ -57,11 +44,7 @@ def get_turn():
 
 @main.route("/get/board")
 def get_board():
-    if state.active_mode == "lan":
-        if not state.active_lan_game:
-            return jsonify({"error": "No active LAN game"})
-        board = state.active_lan_game.board
-    elif state.active_mode in state.game_states:
+    if state.active_mode in state.game_states:
         board = state.game_states[state.active_mode].board
     else:
         return jsonify({"error": "Invalid game mode"})
@@ -102,88 +85,68 @@ def move_ai_bot():
     return jsonify({"success": success, "uci": uci_pred})
 
 
-@main.route("/move/lan_player", methods=["POST"])
-def move_lan_player():
-    if not state.active_lan_game:
-        return jsonify({"error": "No active LAN game"}), 400
+@main.route("/get/stats")
+def get_stats():
+    game = state.game_states.get(state.active_mode)
+    if not game:
+        return jsonify({"error": "Invalid game mode"}), 400
 
-    uci = request.get_data(as_text=True).strip()
-    board = state.active_lan_game.board
+    board = game.board
+    ac, cr, eps, hc, fc = board.get_fen_stats()
 
-    move = Move.from_uci(uci)
-    success = board.push(move)
-    return jsonify({"success": success})
+    try:
+        fullmove_count = int(fc)
+        halfmove_clock = int(hc)
+    except ValueError:
+        return jsonify({"error": "Invalid FEN values"}), 500
 
+    ply = (fullmove_count - 1) * 2 + (1 if ac == "b" else 0)
 
-@main.route("/lan/create", methods=["POST"])
-def create_lan_game():
-    game_id = str(uuid.uuid4())[:8]
-    color = request.json.get("color")
-    ip = request.remote_addr
+    checkmate = board.is_checkmate()
+    draw = board.is_draw()
 
-    game = state.LANGame(game_id)
-
-    if color == "w":
-        game.white_ip = ip
-        game.white_token = str(uuid.uuid4())
-    else:
-        game.black_ip = ip
-        game.black_token = str(uuid.uuid4())
-
-    # Overwrite existing LAN game
-    state.active_lan_game = game
-
-    # Get local IP to broadcast
-    hostname = socket.gethostname()
-    local_ip = socket.gethostbyname(hostname)
-
-    # Start broadcasting this new game
-    state.broadcast_game(game_id, local_ip)
+    winner = "b" if board.active_color == WHITE else "w" if checkmate or draw else None
 
     return jsonify(
         {
-            "game_id": game_id,
-            "color": color,
-            "token": game.white_token if color == "w" else game.black_token,
+            "active_color": ac,
+            "castling": cr,
+            "en_passant": eps,
+            "halfmove_clock": halfmove_clock,
+            "fullmove_count": fullmove_count,
+            "ply": ply,
+            "in_check": board.is_in_check(),
+            "checkmate": board.is_checkmate(),
+            "draw": board.is_draw(),
+            "winner": winner,
         }
     )
 
 
-@main.route("/lan/discovered", methods=["GET"])
-def get_discovered_lan_games():
-    local_ip = socket.gethostbyname(socket.gethostname())
+@main.route("/reset", methods=["POST"])
+def reset_board():
+    if state.active_mode not in state.game_states:
+        return jsonify({"error": "Invalid game mode"}), 400
 
-    games = []
-    for game in state.discovered_lan_games.values():
-        is_local = game["ip"] == local_ip
-        games.append({**game, "local": is_local})
-
-    return jsonify({"games": games})
+    game = state.game_states[state.active_mode]
+    game.board.reset()
+    return jsonify({"success": True})
 
 
-@main.route("/lan/join/<game_id>", methods=["POST"])
-def join_lan_game(game_id):
-    ip = request.remote_addr
-    game = state.active_lan_game
+@main.route("/undo", methods=["POST"])
+def undo_move():
+    if state.active_mode not in state.game_states:
+        return jsonify({"error": "Invalid game mode"}), 400
 
-    if not game or game.game_id != game_id:
-        return jsonify({"error": "Game not found"}), 404
+    game = state.game_states[state.active_mode]
+    success = game.board.undo()
+    return jsonify({"success": success})
 
-    # Check if this IP already joined
-    if ip in game.joined_clients:
-        return jsonify(game.joined_clients[ip])
 
-    if not game.white_ip:
-        game.white_ip = ip
-        token = str(uuid.uuid4())
-        game.white_token = token
-        game.joined_clients[ip] = {"color": "w", "token": token}
-    elif not game.black_ip:
-        game.black_ip = ip
-        token = str(uuid.uuid4())
-        game.black_token = token
-        game.joined_clients[ip] = {"color": "b", "token": token}
-    else:
-        return jsonify({"error": "Game full"}), 403
+@main.route("/can_move/<from_uci>/<to_uci>")
+def can_move(from_uci, to_uci):
+    if state.active_mode not in state.game_states:
+        return jsonify({"can_move": False})
 
-    return jsonify(game.joined_clients[ip])
+    board = state.game_states[state.active_mode].board
+    return jsonify({"can_move": board.can_move_to(from_uci, to_uci)})

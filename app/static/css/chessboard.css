@@ -11,18 +11,84 @@
     transform: rotate(180deg);
 }
 
+.game-end-banner {
+    background: #222;
+    color: white;
+    font-size: 1.5rem;
+    padding: 14px 24px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+    text-align: center;
+}
+
+.game-end-banner.hidden {
+    display: none;
+}
+
+.promotion-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 5px;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, max-height 0.3s ease;
+}
+.promotion-container:not(.hidden) {
+    opacity: 1;
+    max-height: 200px;
+    pointer-events: auto;
+}
+
+.promotion-buttons {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.promotion-buttons button {
+    background: #222;
+    color: white;
+    border: 2px solid #666;
+    padding: 8px 12px;
+    font-size: 1.2rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.1s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    width: 30%;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.promotion-buttons button:hover {
+    background: #333;
+}
+
+.promotion-buttons button:active {
+    transform: scale(0.96);
+}
+
 #chessboard {
     display: grid;
     grid-template-columns: repeat(8, 1fr);
     grid-template-rows:    repeat(8, 1fr);
-    width: min(80vw, 100vh - 400px);
+    width: min(80vw, 100vh - 500px);
     aspect-ratio: 1 / 1;
     border: 4px solid #444;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     margin: 0 auto;
     z-index: 1;
-    min-height: 560px;
-    min-width: 560px;
+    min-height: 400px;
+    min-width: 400px;
+    position: relative;
 }
 #chessboard.animate {
     transition: grid-template-columns 0.2s ease, grid-template-rows 0.2s ease;
@@ -44,6 +110,21 @@
     transform: rotate(180deg) scale(1.1);
 }
 
+.chessboard-container.rotated #game-end-banner {
+    order: 3;
+    transform: rotate(180deg);
+    margin-bottom: 0px;
+    margin-top: 10px;
+}
+.chessboard-container.rotated #chessboard {
+    order: 2;
+}
+.chessboard-container.rotated .board-btns {
+    order: 1;
+    transform: rotate(180deg);
+    margin-top: 0px;
+    margin-bottom: 20px;
+}
 
 .square {
     width: 100%;
@@ -55,6 +136,10 @@
     cursor: pointer;
     padding: 10%;
     box-sizing: border-box;
+}
+
+.square.checked {
+    box-shadow: inset 0 0 0 5px darkred;
 }
 
 .square.light {
@@ -125,6 +210,10 @@
     animation: slide-in-right-rotated 0.1s ease-out forwards;
 }
 
+.square:hover {
+    box-shadow: inset 0 0 0 5px #fbc02d;
+}
+
 .square:hover .piece {
     transform: scale(1.1);
     transition: transform 0.2s ease;
@@ -136,6 +225,37 @@
 .square.error {
     transition: box-shadow 0.2s ease;
     box-shadow: inset 0 0 0 5px rgb(255, 80, 80);
+}
+
+.board-btns {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.board-btns button {
+    background: #222;
+    color: white;
+    border: 2px solid #666;
+    padding: 8px 12px;
+    font-size: 1.2rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.1s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    width: 30%;
+}
+
+.board-btns button:hover {
+    background: #333;
+}
+
+.board-btns button:active {
+    transform: scale(0.96);
 }
 
 @keyframes slide-in-left {

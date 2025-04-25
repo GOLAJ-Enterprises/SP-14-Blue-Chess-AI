@@ -1,10 +1,9 @@
 let turn = null;
 let selectedSquare = null;
+let gameOver = false;
+let pendingPromotion = null;
 const params = new URLSearchParams(window.location.search);
-const gameMode = params.get("pvp") === "true" ? "pvp"
-            : params.get("ai") === "true" ? "ai"
-            : params.get("lan") === "true" ? "lan"
-            : "unknown";
+const gameMode = params.get("mode");
 const playerColor = params.get("color") || null; // 'white', 'black', or null
 const INITIAL_POSITION = {
     a1: "w_r", b1: "w_n", c1: "w_b", d1: "w_q", e1: "w_k", f1: "w_b", g1: "w_n", h1: "w_r",
@@ -16,83 +15,192 @@ const INITIAL_POSITION = {
 document.addEventListener("DOMContentLoaded", () => {
     const boardContainer = document.querySelector(".chessboard-container");
     const board = document.getElementById("chessboard");
-    const isAiGame = new URLSearchParams(window.location.search).get("ai") === "true";
-    
-    // Rotate board if necessary, and fill board.
+    const isAiGame = gameMode === "ai";
+
     if (board) {
+        // Render initial board position
         if (isAiGame && playerColor === "b") {
             boardContainer.classList.add("rotated");
-    
-            // Wait for rotation to visually finish (1s)
+
             setTimeout(() => {
-                renderInitialPosition();
-            }, 1000); // match the CSS transition duration
+                renderInitialPosition().then(updateStats);
+            }, 1000);
         } else {
-            renderInitialPosition();
+            renderInitialPosition().then(updateStats);
         }
-    }
-    
-    // Initialize turn
-    if (board) {
-        fetch(api("/get/turn"))
-        .then(res => res.json())
-        .then(data => {
-            if (data.turn) {
-                turn = data.turn;
-                // Auto-trigger AI move after load if player is black
-                if (isAiGame && playerColor === "b" && turn === "w") {
-                    setTimeout(() => {
-                        aiMove();
-                    }, 2010);
+
+        // Initialize turn
+        fetch("/get/turn")
+            .then(res => res.json())
+            .then(data => {
+                if (data.turn) {
+                    turn = data.turn;
+                    if (isAiGame && playerColor === "b" && turn === "w") {
+                        setTimeout(() => {
+                            aiMove();
+                        }, 2010);
+                    }
+                } else {
+                    console.error("Turn initialization error:", data.error)
                 }
-            } else {
-                console.error("Turn initialization error:", data.error)
-            }
-        });
+            });
     }
 });
 
-function api(path) {
-    const ip = HOST_IP || localStorage.getItem("LAN_HOST_IP");
-    if (ip) {
-        return `http://${ip}:5000${path}`;
-    }
-    return path;  // default to current origin if no host set
-}
-
-function renderInitialPosition() {
-    fetch(api("/get/board"))
+function resetBoard() {
+    fetch("/reset", { method: "POST" })
         .then(res => res.json())
         .then(data => {
-            const board = data.board; // 8x8 array of symbols
+            if (data.success) {
+                selectedSquare = null;
+                clearBoard();
+                renderInitialPosition();
+                updateStats();
 
-            // Flatten to entries like [["e2", "P"], ["a7", "p"], ...]
+                // Reinitialize turn after reset
+                fetch("/get/turn")
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.turn) {
+                            turn = data.turn;
+
+                            // If AI plays white and it's white's turn after reset, move
+                            if (gameMode === "ai" && playerColor === "b" && turn === "w") {
+                                setTimeout(() => {
+                                    aiMove();
+                                }, 1000);
+                            }
+                        }
+                    });
+            } else {
+                console.error("Reset failed:", data.error);
+            }
+        })
+        .catch(err => console.error("Reset request failed:", err));
+}
+
+function clearBoard() {
+    document.querySelectorAll(".square").forEach(square => {
+        const piece = square.querySelector(".piece");
+        if (piece) {
+            piece.remove();
+        }
+        square.dataset.pieceColor = "";
+        square.dataset.pieceType = "";
+    });
+}
+
+function updateStats() {
+    fetch("/get/stats")
+        .then(res => res.json())
+        .then(data => {
+            const activeColor = data.active_color;
+            const castlingRights = data.castling;
+            const enPassant = data.en_passant;
+            const halfmove = data.halfmove_clock;
+            const fullmove = data.fullmove_count;
+            const ply = data.ply;
+
+            // Turn
+            document.getElementById("stat-turn").textContent = activeColor === "w" ? "White" : "Black";
+
+            // Castling
+            const wk = castlingRights.includes("K");
+            const wq = castlingRights.includes("Q");
+            const bk = castlingRights.includes("k");
+            const bq = castlingRights.includes("q");
+
+            document.getElementById("stat-wk").textContent = "K" + (wk ? "✓" : "✗");
+            document.getElementById("stat-wq").textContent = "Q" + (wq ? "✓" : "✗");
+            document.getElementById("stat-bk").textContent = "K" + (bk ? "✓" : "✗");
+            document.getElementById("stat-bq").textContent = "Q" + (bq ? "✓" : "✗");
+
+            // En Passant
+            document.getElementById("stat-ep").textContent = enPassant;
+
+            // Halfmove & Fullmove
+            document.getElementById("stat-halfmove").textContent = halfmove;
+            document.getElementById("stat-fullmove").textContent = fullmove;
+
+            // Ply
+            document.getElementById("stat-ply").textContent = ply;
+
+            // Show end game status
+            gameOver = data.checkmate || data.draw
+            showGameEnd(data.checkmate, data.draw, data.winner);
+
+            // Clear any old "checked" highlight
+            document.querySelectorAll(".square.checked").forEach(sq => sq.classList.remove("checked"));
+
+            // Highlight king's square if side to move is in check
+            if (data.in_check) {
+                const selector = `.square[data-piece-color="${activeColor}"][data-piece-type="k"]`;
+                const kingSquare = document.querySelector(selector);
+                if (kingSquare) kingSquare.classList.add("checked");
+            }
+        })
+        .catch(err => console.error("Failed to load FEN stats:", err));
+}
+
+function showGameEnd(checkmate, draw, winner) {
+    const banner = document.getElementById("game-end-banner");
+    if (!banner) return;
+
+    if (checkmate) {
+        banner.textContent = `Checkmate: ${winner === "w" ? "White" : "Black"} won`;
+    } else if (draw) {
+        banner.textContent = "Draw";
+    }
+
+    if (checkmate || draw) {
+        banner.classList.remove("hidden");
+    } else {
+        banner.classList.add("hidden");
+    }
+}
+
+function toggleStatsSidebar() {
+    const sidebar = document.getElementById("stats-sidebar");
+    sidebar.classList.toggle("hidden");
+}
+
+
+function renderInitialPosition() {
+    return fetch("/get/board")
+        .then(res => res.json())
+        .then(data => {
+            const board = data.board;
+
+            // Clear existing pieces first
+            document.querySelectorAll(".square").forEach(square => {
+                const piece = square.querySelector(".piece");
+                if (piece) piece.remove();
+                square.dataset.pieceColor = "";
+                square.dataset.pieceType = "";
+            });
+
             const entries = [];
 
             for (let row = 0; row < 8; row++) {
                 for (let col = 0; col < 8; col++) {
                     const symbol = board[row][col];
                     if (symbol) {
-                        const uci = String.fromCharCode(97 + col) + (8 - row); // 'a'-'h' and 8-1
+                        const uci = String.fromCharCode(97 + col) + (8 - row);
                         entries.push([uci, symbol]);
                     }
                 }
             }
 
-            // Separate and sort white and black
             const whiteEntries = entries
                 .filter(([_, sym]) => sym === sym.toUpperCase())
-                .sort(([a], [b]) => a[1] - b[1]); // pawns last
+                .sort(([a], [b]) => a[1] - b[1]);
 
             const blackEntries = entries
                 .filter(([_, sym]) => sym === sym.toLowerCase())
                 .sort(([a], [b]) => b[1] - a[1]);
 
-            // White pieces
             whiteEntries.forEach(([squareId, symbol], index) => {
                 const square = document.getElementById(squareId);
-                if (!square) return;
-
                 const pieceName = "w_" + symbol.toLowerCase();
                 const img = document.createElement("img");
                 img.src = `/static/images/pieces_svg/${pieceName}.svg`;
@@ -100,7 +208,6 @@ function renderInitialPosition() {
                 img.style.animationDelay = `${index * 50}ms`;
 
                 square.appendChild(img);
-
                 img.addEventListener("animationend", () => {
                     img.style.opacity = "1";
                     img.classList.remove("piece-entry-white");
@@ -110,11 +217,8 @@ function renderInitialPosition() {
                 square.dataset.pieceType = symbol.toLowerCase();
             });
 
-            // Black pieces
             blackEntries.forEach(([squareId, symbol], index) => {
                 const square = document.getElementById(squareId);
-                if (!square) return;
-
                 const pieceName = "b_" + symbol;
                 const img = document.createElement("img");
                 img.src = `/static/images/pieces_svg/${pieceName}.svg`;
@@ -122,7 +226,6 @@ function renderInitialPosition() {
                 img.style.animationDelay = `${index * 50}ms`;
 
                 square.appendChild(img);
-
                 img.addEventListener("animationend", () => {
                     img.style.opacity = "1";
                     img.classList.remove("piece-entry-black");
@@ -146,11 +249,13 @@ function errorSquare(square) {
 }
 
 function selectPiece(square) {
+    if (gameOver) return;
+
     color = square.dataset.pieceColor;
 
     if (gameMode === "pvp" && turn !== color) {
         return false;
-    } else if ((gameMode.includes("ai") || gameMode === "lan") && playerColor !== color) {
+    } else if (gameMode === "ai" && playerColor !== color) {
         return false;
     }
 
@@ -162,6 +267,8 @@ function selectPiece(square) {
 }
 
 function handleSquareClick(square) {
+    if (gameOver || pendingPromotion) return;
+
     if (selectPiece(square)) return;
     if (!selectedSquare) return;
 
@@ -172,232 +279,245 @@ function handleSquareClick(square) {
     selectedSquare.classList.remove("selected");
     selectedSquare = null;
 
-    // Local PvP move
-    if (gameMode === "pvp") {
-        fetch("/move/local_player", {
-            method: "POST",
-            body: uci
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                movePiece(from, to);
-                turn = turn === "w" ? "b" : "w";
-            } else {
-                errorSquare(square);
-            }
-        })
-        .catch(err => console.error("Move request failed:", err));
+    const fromRank = parseInt(from[1]);
+    const toRank = parseInt(to[1]);
+    const pieceType = document.getElementById(from).dataset.pieceType;
+    const pieceColor = document.getElementById(from).dataset.pieceColor;
+
+    const isWhitePromo = pieceType === "p" && pieceColor === "w" && fromRank === 7 && toRank === 8;
+    const isBlackPromo = pieceType === "p" && pieceColor === "b" && fromRank === 2 && toRank === 1;
+
+    if (isWhitePromo || isBlackPromo) {
+        fetch(`/can_move/${from}/${to}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.can_move) {
+                    pendingPromotion = { from, to };
+                    showPromotionOptions();
+                } else {
+                    errorSquare(square);
+                }
+            })
+            .catch(err => {
+                console.error("Promotion legality check failed:", err);
+            });
+        return;
     }
 
-    // Player vs AI
-    else if (gameMode.includes("ai") && playerColor === turn) {
-        fetch("/move/ai_player", {
-            method: "POST",
-            body: uci
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                movePiece(from, to);
-                turn = turn === "w" ? "b" : "w";
-
-                // Wait until move animation finishes (300ms) before AI moves
-                setTimeout(() => {
-                    aiMove();
-                }, 300);
-            } else {
-                errorSquare(square);
-            }
-        })
-        .catch(err => console.error("Move request failed:", err));
-    }
-
-    // LAN mode (remote host)
-    else if (gameMode == "lan" && playerColor === turn) {
-        fetch(api("/move/lan_player"), {
-            method: "POST",
-            body: uci,
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                movePiece(from, to)
-                turn = turn === "w" ? "b" : "w";
-            } else {
-                errorSquare(square);
-            }
-        })
-        .catch(err => console.error("LAN move request failed", err));
-    }
+    sendMove(uci, from, to, null);
 }
 
-function movePiece(fromId, toId) {
+function sendMove(uci, from, to, promotion) {
+    const fullUci = promotion ? uci + promotion : uci;
+
+    const url = gameMode === "pvp" ? "/move/local_player" : "/move/ai_player";
+
+    fetch(url, {
+        method: "POST",
+        body: fullUci
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            movePiece(from, to, promotion);
+            turn = turn === "w" ? "b" : "w";
+            updateStats();
+
+            if (gameMode === "ai" && playerColor !== turn) {
+                setTimeout(aiMove, 300);
+            }
+        } else {
+            errorSquare(document.getElementById(to));
+        }
+    })
+    .catch(err => console.error("Move request failed:", err));
+}
+
+function showPromotionOptions() {
+    const container = document.querySelector('.promotion-container');
+    container.classList.remove('hidden');
+
+    const pieceMap = {
+        'promotion-select-queen':  'q',
+        'promotion-select-rook':   'r',
+        'promotion-select-bishop': 'b',
+        'promotion-select-knight': 'n'
+    };
+
+    const buttons = container.querySelectorAll('button[id^="promotion-select-"]');
+    buttons.forEach(btn => {
+        // Clear out any old handler
+        btn.onclick = null;
+
+        // Assign the new one
+        btn.onclick = () => {
+            const promotion = pieceMap[btn.id];
+            const { from, to } = pendingPromotion;
+            container.classList.add('hidden');
+            pendingPromotion = null;
+            sendMove(from + to, from, to, promotion);
+        };
+    });
+}
+
+function movePiece(fromId, toId, promotion = null) {
+    if (gameOver) return;
+
+    lastMoveMade = [fromId, toId];
     const fromSquare = document.getElementById(fromId);
     const toSquare = document.getElementById(toId);
-
     if (!fromSquare || !toSquare) {
-        console.error("Invalid square IDs:", fromId, toId);
+        console.error('Invalid square IDs:', fromId, toId);
         return;
     }
 
-    const piece = fromSquare.querySelector(".piece");
-
+    const piece = fromSquare.querySelector('.piece');
     if (!piece) {
-        console.error("No piece found at square:", fromId);
+        console.error('No piece found at square:', fromId);
         return;
     }
 
+    // Figure out what piece to end up with
     const pieceColor = fromSquare.dataset.pieceColor;
-    const pieceType = fromSquare.dataset.pieceType;
+    const originalType = fromSquare.dataset.pieceType;
+    const newType = promotion || originalType;
+    const fileName = `${pieceColor}_${newType}`;
 
     // Handle captures
-    const capturedPiece = toSquare.querySelector(".piece");
-    if (capturedPiece) {
-        capturedPiece.style.transition = "opacity 0.2s ease";
-        capturedPiece.style.opacity = "0";
-        setTimeout(() => {
-            capturedPiece.remove();
-        }, 200);
+    const captured = toSquare.querySelector('.piece');
+    if (captured) {
+        captured.style.transition = 'opacity 0.2s ease';
+        captured.style.opacity = '0';
+        setTimeout(() => captured.remove(), 200);
     }
 
-    // Check for en passant capture
-    if (pieceType === "p") {
-        const fromFile = fromId.charCodeAt(0); // 'a' = 97
+    // Handle en passant capture
+    if (originalType === 'p') {
+        const fromFile = fromId.charCodeAt(0);
         const toFile = toId.charCodeAt(0);
-        const fromRank = parseInt(fromId[1]);
-        const toRank = parseInt(toId[1]);
-
-        // If pawn moves diagonally but destination square is empty, it's en passant
-        if (Math.abs(fromFile - toFile) === 1 && Math.abs(fromRank - toRank) === 1 && !capturedPiece) {
-            // The captured pawn will be on the same file as the destination but on the same rank as the origin
-            const enPassantSquareId = String.fromCharCode(toFile) + fromRank;
-            const enPassantSquare = document.getElementById(enPassantSquareId);
-            
-            if (enPassantSquare) {
-                const capturedEnPassantPiece = enPassantSquare.querySelector(".piece");
-                if (capturedEnPassantPiece) {
-                    capturedEnPassantPiece.style.transition = "opacity 0.2s ease";
-                    capturedEnPassantPiece.style.opacity = "0";
+        const fromRank = parseInt(fromId[1], 10);
+        const toRank = parseInt(toId[1], 10);
+        if (Math.abs(fromFile - toFile) === 1 &&
+            Math.abs(fromRank - toRank) === 1 &&
+            !captured) {
+            const epId = String.fromCharCode(toFile) + fromRank;
+            const epSq = document.getElementById(epId);
+            if (epSq) {
+                const epCap = epSq.querySelector('.piece');
+                if (epCap) {
+                    epCap.style.transition = 'opacity 0.2s ease';
+                    epCap.style.opacity = '0';
                     setTimeout(() => {
-                        capturedEnPassantPiece.remove();
-                        enPassantSquare.dataset.pieceColor = "";
-                        enPassantSquare.dataset.pieceType = "";
+                        epCap.remove();
+                        epSq.dataset.pieceColor = '';
+                        epSq.dataset.pieceType = '';
                     }, 200);
                 }
             }
         }
     }
 
-    // Animate the piece move
-    const fromRect = fromSquare.getBoundingClientRect();
-    const toRect = toSquare.getBoundingClientRect();
-
-    const clone = piece.cloneNode(true);
-    document.body.appendChild(clone);
-
-    clone.style.position = "fixed";
-    clone.style.zIndex = "1000";
-    clone.style.width = `${fromRect.width * 0.8}px`;
-    clone.style.height = `${fromRect.height * 0.8}px`;
-    clone.style.top = `${fromRect.top + (fromRect.height - fromRect.height * 0.8) / 2}px`;
-    clone.style.left = `${fromRect.left + (fromRect.width - fromRect.width * 0.8) / 2}px`;
-    clone.style.transition = "top 0.3s ease, left 0.3s ease";
-    clone.style.pointerEvents = "none";
-
-    piece.style.opacity = "0";
-
-    setTimeout(() => {
-        clone.style.top = `${toRect.top + (toRect.height - toRect.height * 0.8) / 2}px`;
-        clone.style.left = `${toRect.left + (toRect.width - toRect.width * 0.8) / 2}px`;
-    }, 10);
-
-    // Castling check
+    // Prepare for castling rook moves
     const rookMoves = [];
-
-    if (pieceType === "k") {
-        const fromFile = fromId[0].charCodeAt(0); // 'e' = 101
-        const toFile = toId[0].charCodeAt(0);
-
-        // Kingside castling
+    if (originalType === 'k') {
+        const fromFile = fromId.charCodeAt(0);
+        const toFile = toId.charCodeAt(0);
+        // kingside
         if (toFile - fromFile === 2) {
-            const rookFrom = fromId[1] === "1" ? "h1" : "h8";
-            const rookTo = fromId[1] === "1" ? "f1" : "f8";
+            const rookFrom = fromId[1] === '1' ? 'h1' : 'h8';
+            const rookTo   = fromId[1] === '1' ? 'f1' : 'f8';
             rookMoves.push([rookFrom, rookTo]);
         }
-        // Queenside castling
-        else if (toFile - fromFile === -2) {
-            const rookFrom = fromId[1] === "1" ? "a1" : "a8";
-            const rookTo = fromId[1] === "1" ? "d1" : "d8";
+        // queenside
+        if (toFile - fromFile === -2) {
+            const rookFrom = fromId[1] === '1' ? 'a1' : 'a8';
+            const rookTo   = fromId[1] === '1' ? 'd1' : 'd8';
             rookMoves.push([rookFrom, rookTo]);
         }
     }
 
+    // Animate the move
+    const fromRect = fromSquare.getBoundingClientRect();
+    const toRect   = toSquare.getBoundingClientRect();
+    const clone    = piece.cloneNode(true);
+    document.body.appendChild(clone);
+    clone.style.position = 'fixed';
+    clone.style.zIndex   = '1000';
+    clone.style.width    = `${fromRect.width * 0.8}px`;
+    clone.style.height   = `${fromRect.height * 0.8}px`;
+    clone.style.top      = `${fromRect.top + (fromRect.height - fromRect.height * 0.8) / 2}px`;
+    clone.style.left     = `${fromRect.left + (fromRect.width  - fromRect.width  * 0.8) / 2}px`;
+    clone.style.transition = 'top 0.3s ease, left 0.3s ease';
+    clone.style.pointerEvents = 'none';
+
+    piece.style.opacity = '0';
+
+    // Kick off the CSS transition
+    setTimeout(() => {
+        clone.style.top  = `${toRect.top  + (toRect.height  - toRect.height  * 0.8) / 2}px`;
+        clone.style.left = `${toRect.left + (toRect.width   - toRect.width   * 0.8) / 2}px`;
+    }, 10);
+
+    // Once animation is done, swap in the new piece
     setTimeout(() => {
         piece.remove();
 
-        const newPiece = document.createElement("img");
-        newPiece.src = piece.src;
-        newPiece.classList.add("piece");
-        newPiece.style.opacity = "1";
-
+        const newPiece = document.createElement('img');
+        newPiece.src         = `/static/images/pieces_svg/${fileName}.svg`;
+        newPiece.classList.add('piece');
+        newPiece.style.opacity = '1';
         toSquare.appendChild(newPiece);
 
+        // Update data attributes
         toSquare.dataset.pieceColor = pieceColor;
-        toSquare.dataset.pieceType = pieceType;
-        fromSquare.dataset.pieceColor = "";
-        fromSquare.dataset.pieceType = "";
+        toSquare.dataset.pieceType  = newType;
+        fromSquare.dataset.pieceColor = '';
+        fromSquare.dataset.pieceType  = '';
 
         clone.remove();
 
-        // Now animate the rook if needed
-        rookMoves.forEach(([rookFromId, rookToId]) => {
-            const rookFrom = document.getElementById(rookFromId);
-            const rookTo = document.getElementById(rookToId);
+        // Handle rook in castling
+        rookMoves.forEach(([rFrom, rTo]) => {
+            const rf = document.getElementById(rFrom);
+            const rt = document.getElementById(rTo);
+            if (!rf || !rt) return;
 
-            if (!rookFrom || !rookTo) return;
-
-            const rook = rookFrom.querySelector(".piece");
+            const rook = rf.querySelector('.piece');
             if (!rook) return;
 
-            const rookRectFrom = rookFrom.getBoundingClientRect();
-            const rookRectTo = rookTo.getBoundingClientRect();
+            const rfRect = rf.getBoundingClientRect();
+            const rtRect = rt.getBoundingClientRect();
+            const rClone = rook.cloneNode(true);
+            document.body.appendChild(rClone);
+            rClone.style.position = 'fixed';
+            rClone.style.zIndex   = '1000';
+            rClone.style.width    = `${rfRect.width * 0.8}px`;
+            rClone.style.height   = `${rfRect.height * 0.8}px`;
+            rClone.style.top      = `${rfRect.top + (rfRect.height - rfRect.height * 0.8) / 2}px`;
+            rClone.style.left     = `${rfRect.left + (rfRect.width - rfRect.width * 0.8) / 2}px`;
+            rClone.style.transition = 'top 0.3s ease, left 0.3s ease';
+            rClone.style.pointerEvents = 'none';
 
-            const rookClone = rook.cloneNode(true);
-            document.body.appendChild(rookClone);
-
-            rookClone.style.position = "fixed";
-            rookClone.style.zIndex = "1000";
-            rookClone.style.width = `${rookRectFrom.width * 0.8}px`;
-            rookClone.style.height = `${rookRectFrom.height * 0.8}px`;
-            rookClone.style.top = `${rookRectFrom.top + (rookRectFrom.height - rookRectFrom.height * 0.8) / 2}px`;
-            rookClone.style.left = `${rookRectFrom.left + (rookRectFrom.width - rookRectFrom.width * 0.8) / 2}px`;
-            rookClone.style.transition = "top 0.3s ease, left 0.3s ease";
-            rookClone.style.pointerEvents = "none";
-
-            rook.style.opacity = "0";
+            rook.style.opacity = '0';
 
             setTimeout(() => {
-                rookClone.style.top = `${rookRectTo.top + (rookRectTo.height - rookRectTo.height * 0.8) / 2}px`;
-                rookClone.style.left = `${rookRectTo.left + (rookRectTo.width - rookRectTo.width * 0.8) / 2}px`;
+                rClone.style.top  = `${rtRect.top  + (rtRect.height  - rtRect.height  * 0.8) / 2}px`;
+                rClone.style.left = `${rtRect.left + (rtRect.width   - rtRect.width   * 0.8) / 2}px`;
             }, 10);
 
             setTimeout(() => {
                 rook.remove();
+                const newRook = document.createElement('img');
+                newRook.src         = rook.src;
+                newRook.classList.add('piece');
+                newRook.style.opacity = '1';
+                rt.appendChild(newRook);
 
-                const newRook = document.createElement("img");
-                newRook.src = rook.src;
-                newRook.classList.add("piece");
-                newRook.style.opacity = "1";
-
-                rookTo.appendChild(newRook);
-
-                rookTo.dataset.pieceColor = pieceColor;
-                rookTo.dataset.pieceType = "r";
-                rookFrom.dataset.pieceColor = "";
-                rookFrom.dataset.pieceType = "";
-
-                rookClone.remove();
+                rt.dataset.pieceColor = pieceColor;
+                rt.dataset.pieceType  = 'r';
+                rf.dataset.pieceColor = '';
+                rf.dataset.pieceType  = '';
+                rClone.remove();
             }, 300);
         });
 
@@ -405,16 +525,77 @@ function movePiece(fromId, toId) {
 }
 
 function aiMove() {
+    if (gameOver) return;
+
     fetch("/move/ai_bot")
     .then(res => res.json())
     .then(data => {
-        if (data.success) {
-            const uci = data.uci;
-            const aiFrom = uci.slice(0, 2);
-            const aiTo = uci.slice(2, 4);
-            movePiece(aiFrom, aiTo);
-            turn = turn === "w" ? "b" : "w";
-        }
+        if (!data.success) return console.error("AI move failed");
+
+        const uci = data.uci;           // e.g. "e7e8q"  
+        const aiFrom = uci.slice(0, 2); // "e7"  
+        const aiTo   = uci.slice(2, 4); // "e8"  
+        // if there's a 5th character, it's the promotion piece:
+        const aiPromo = uci.length === 5 ? uci[4] : null;  
+
+        // directly movePiece; no prompts ever for the AI
+        movePiece(aiFrom, aiTo, aiPromo);
+
+        // flip turn & stats
+        turn = turn === "w" ? "b" : "w";
+        updateStats();
     })
     .catch(err => console.error("AI move request failed:", err));
+}
+
+
+function undoMove() {
+    const undoOnce = () => fetch("/undo", { method: "POST" }).then(res => res.json());
+
+    if (gameMode === "ai") {
+        // Undo twice: player move + AI move
+        undoOnce()
+            .then(data1 => {
+                if (!data1.success) throw new Error(data1.error || "Undo 1 failed");
+                return undoOnce();
+            })
+            .then(data2 => {
+                if (!data2.success) throw new Error(data2.error || "Undo 2 failed");
+                afterUndoRefresh();
+            })
+            .catch(err => console.error("AI Undo error:", err));
+    } else {
+        // PvP: just undo once
+        undoOnce()
+            .then(data => {
+                if (!data.success) {
+                    console.error("Undo failed:", data.error || data);
+                    return;
+                }
+                afterUndoRefresh();
+            })
+            .catch(err => console.error("Undo request failed:", err));
+    }
+}
+
+function afterUndoRefresh() {
+    clearBoard();
+    renderInitialPosition();
+    updateStats();
+    gameOver = false;
+
+    fetch("/get/turn")
+        .then(res => res.json())
+        .then(data => {
+            if (!data.turn) {
+                console.error("Turn fetch error:", data.error);
+                return;
+            }
+            turn = data.turn;
+
+            // Let AI move only if it's its turn now
+            if (gameMode === "ai" && playerColor !== turn) {
+                setTimeout(() => aiMove(), 1000);
+            }
+        });
 }

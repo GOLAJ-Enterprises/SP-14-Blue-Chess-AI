@@ -1,7 +1,9 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from collections import defaultdict
+from dataclasses import dataclass
 import torch
+
 
 from .generators import PseudoLegalMoveGenerator, AttackMapGenerator, LegalMoveGenerator
 from .literals import (
@@ -56,6 +58,23 @@ if TYPE_CHECKING:
     from .move import Move
 
 
+@dataclass(frozen=True)
+class UndoRecord:
+    move: Move
+    moved_piece: tuple[Piece, Color]
+    captured_piece: tuple[Piece, Color] | None
+    capture_sq: int
+    old_castling: int
+    old_en_passant: int | None
+    old_ep_capturable: bool
+    old_halfmove: int
+    old_fullmove: int
+    old_zobrist: int
+    new_zobrist: int
+    prior_rep_count: int
+    rook_move: tuple[int, int] | None
+
+
 class Board:
     """Represents the full game state, including piece positions, castling rights, and move generation."""
 
@@ -80,6 +99,7 @@ class Board:
         self.piece_map: dict[int, tuple[Piece, Color]] = {}
         self.zobrist_hash = 0
         self.unique_history: dict[int, int] = defaultdict(int)
+        self.history: list[UndoRecord] = []
         self.bitboards = [
             [  # BLACK
                 0x00FF_0000_0000_0000,  # Pawns (rank 7)
@@ -159,6 +179,60 @@ class Board:
 
         return True
 
+    def undo(self) -> bool:
+        if not self.history:
+            return False
+        rec = self.history.pop()
+
+        # 1) remove moved piece from to_sq
+        self.piece_map.pop(rec.move.to_sq, None)
+        self.bitboards[rec.moved_piece[1]][
+            rec.move.promotion or rec.moved_piece[0]
+        ] &= not64(mask(rec.move.to_sq))
+
+        # 2) restore moved piece at from_sq
+        self.bitboards[rec.moved_piece[1]][rec.moved_piece[0]] |= mask(rec.move.from_sq)
+        self.piece_map[rec.move.from_sq] = rec.moved_piece
+        self.occupied[rec.moved_piece[1]] |= mask(rec.move.from_sq)
+        self.occupied[rec.moved_piece[1]] &= not64(mask(rec.move.to_sq))
+
+        # restore any capture
+        if rec.captured_piece:
+            ptype, color = rec.captured_piece
+            self.piece_map[rec.capture_sq] = rec.captured_piece
+            self.bitboards[color][ptype] |= mask(rec.capture_sq)
+            self.occupied[color] |= mask(rec.capture_sq)
+
+        # undo castling‐rook if needed
+        if rec.rook_move:
+            r_from, r_to = rec.rook_move
+            self.piece_map.pop(r_to, None)
+            self.bitboards[rec.moved_piece[1]][ROOK] &= not64(mask(r_to))
+            self.bitboards[rec.moved_piece[1]][ROOK] |= mask(r_from)
+            self.piece_map[r_from] = (ROOK, rec.moved_piece[1])
+            self.occupied[rec.moved_piece[1]] |= mask(r_from)
+            self.occupied[rec.moved_piece[1]] &= not64(mask(r_to))
+
+        # restore clocks, castling, en-passant, zobrist
+        self.castling_rights = rec.old_castling
+        self.en_passant_square = rec.old_en_passant
+        self.old_en_passant_capturable = rec.old_ep_capturable
+        self.halfmove_clock = rec.old_halfmove
+        self.fullmove_count = rec.old_fullmove
+        self.zobrist_hash = rec.old_zobrist
+
+        # undo repetition count
+        if rec.prior_rep_count == 0:
+            del self.unique_history[rec.new_zobrist]
+        else:
+            self.unique_history[rec.new_zobrist] = rec.prior_rep_count
+
+        # switch side back, rebuild caches & game-state
+        self.active_color ^= 1
+        self._update_cache()
+        self._update_game_state()
+        return True
+
     def is_in_check(self) -> bool:
         """Checks if the active player's king is currently in check.
 
@@ -192,18 +266,45 @@ class Board:
         return self.game_state == CHECKMATE or self.game_state == DRAW
 
     def push(self, move: Move) -> bool:
-        """Attempts to play a legal move, updating the board and history if successful.
-
-        The move is only executed if the game is not over and the move is legal.
-
-        :param Move move: The move to be made.
-        :return bool: True if the move was made, otherwise False.
-        """
         if self.game_state != ACTIVE or not self.is_legal(move):
             return False
 
-        self._make_move(move)
+        # snapshot pre‐move state
+        moved_piece = self.piece_map[move.from_sq]
+        capture_sq, captured_piece = self._get_captured_piece(move, moved_piece)
+        old_castling = self.castling_rights
+        old_ep = self.en_passant_square
+        old_epc = self.old_en_passant_capturable
+        old_half = self.halfmove_clock
+        old_full = self.fullmove_count
+        old_zob = self.zobrist_hash
 
+        # apply move
+        rook_move = self._make_move(move)
+
+        # record repetition
+        new_zob = self.zobrist_hash
+        prior = self.unique_history.get(new_zob, 0)
+        self.unique_history[new_zob] = prior + 1
+
+        # push minimal undo record
+        self.history.append(
+            UndoRecord(
+                move,
+                moved_piece,
+                captured_piece,
+                capture_sq,
+                old_castling,
+                old_ep,
+                old_epc,
+                old_half,
+                old_full,
+                old_zob,
+                new_zob,
+                prior,
+                rook_move,
+            )
+        )
         return True
 
     def is_legal(self, move: Move) -> bool:
@@ -213,6 +314,26 @@ class Board:
         :return bool: True if the move is legal, otherwise False.
         """
         return move in self.legal_moves
+
+    def can_move_to(self, from_uci: str, to_uci: str) -> bool:
+        """Checks if any legal move exists from from_uci to to_uci (promotion optional).
+
+        This is used to validate legality before showing a promotion popup.
+
+        :param from_uci: Origin square like "e7"
+        :param to_uci: Destination square like "e8"
+        :return: True if any legal move from -> to exists
+        """
+        try:
+            from_sq = algebraic_to_bitpos(from_uci)
+            to_sq = algebraic_to_bitpos(to_uci)
+        except Exception:
+            return False
+
+        for move in self.legal_moves:
+            if move.from_sq == from_sq and move.to_sq == to_sq:
+                return True
+        return False
 
     def get_piece_at(self, uci_sq: str) -> tuple[Piece, Color] | None:
         """Returns the piece located at the given square, if any.
@@ -490,6 +611,9 @@ class Board:
         # Preserve defaultdict behavior for unseen hashes
         new_board.unique_history = defaultdict(int, self.unique_history)
 
+        # Set history
+        new_board.history = self.history.copy()
+
         # Occupancy and caches
         new_board.occupied = self.occupied.copy()
         new_board.pinned = list(self.pinned)
@@ -519,42 +643,33 @@ class Board:
             bishops[1] % 8 + bishops[1] // 8
         ) % 2
 
-    def _make_move(self, move: Move) -> None:
-        """Executes a move and updates all related board state.
-
-        Handles capturing, promotions, castling, en passant, halfmove clock, and updates
-        internal piece maps and bitboards. Used internally by `Board.push()`.
-
-        :param Move move: The move being made.
-        """
+    def _make_move(self, move: Move) -> tuple[int, int] | None:
+        """Applies the move in place, then returns the rook_move tuple if castling."""
         moved_piece = self.piece_map.get(move.from_sq)
 
-        # Save pre-move state
         old_castling = self.castling_rights
         old_en_passant = self.en_passant_square
         capture_sq, captured_piece = self._get_captured_piece(move, moved_piece)
 
-        # Handle captures, promotions, castling, en passant, etc.
+        # perform all sub‐steps
         self._handle_capture(move, moved_piece)
         self._handle_pawn_double_push(move, moved_piece)
         rook_move = self._handle_castling(move, moved_piece)
         self._handle_halfmove_fullmove(moved_piece, captured_piece)
 
-        # Update bitboards with the move (handling promotion if applicable)
+        # update bitboards including promotion
         piece_type, color = moved_piece
         new_type = move.promotion or piece_type
         self.bitboards[color][piece_type] &= not64(mask(move.from_sq))
         self.bitboards[color][new_type] |= mask(move.to_sq)
 
-        # Update piece map
+        # update maps & occupancy
         self.piece_map.pop(move.from_sq)
-        self.piece_map[move.to_sq] = new_type, color
-
-        # Update occupancy
+        self.piece_map[move.to_sq] = (new_type, color)
         self.occupied[color] &= not64(mask(move.from_sq))
         self.occupied[color] |= mask(move.to_sq)
 
-        # Finalize move state updates
+        # update hash, repetition, side‐to‐move, caches, game‐state
         self._post_move_updates(
             move,
             moved_piece,
@@ -564,6 +679,7 @@ class Board:
             old_en_passant,
             rook_move,
         )
+        return rook_move
 
     def _post_move_updates(
         self,
@@ -599,17 +715,14 @@ class Board:
             rook_move,
         )
 
-        # Track position for repetition detection
-        self.unique_history[self.zobrist_hash] += 1
-
         # Switch active player
         self.active_color ^= 1
 
-        # Update game state (checkmate, draw, active, etc.)
-        self._update_game_state()
-
         # Recalculate all move-related caches (attack maps, legal moves, pins, etc.)
         self._update_cache()
+
+        # Update game state (checkmate, draw, active, etc.)
+        self._update_game_state()
 
     def _handle_capture(self, move: Move, moved_piece: tuple[Piece, Color]) -> None:
         """Handles removal of a captured piece and updates board state accordingly.

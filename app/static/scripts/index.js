@@ -1,11 +1,7 @@
 function startPvP() {
-    window.location.href = "/play?pvp=true";
+    window.location.href = "/play?mode=pvp";
 }
 
 function startPvAI() {
-    window.location.href = "/play?ai=true";
-}
-
-function startLAN() {
-    window.location.href = "/play?lan=true";
+    window.location.href = "/play?mode=ai";
 }

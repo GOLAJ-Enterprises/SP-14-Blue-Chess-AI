@@ -10,10 +10,26 @@
 
     <body>
         <div class="title-bar">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="SP-14 Chess AI Logo" class="logo" onclick="goHome()">
-            <div class="lan-status-container">
-                <div class="lan-status" id="lan-status" title="LAN connection status"></div>
-                <p>LAN</p>
+            <button class="home-btn" onclick="goHome()" aria-label="Home">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9L12 3l9 6"></path>
+                    <path d="M9 22V12h6v10"></path>
+                    <path d="M21 9v12a1 1 0 0 1-1 1h-5"></path>
+                    <path d="M3 9v12a1 1 0 0 0 1 1h5"></path>
+                </svg>
+            </button>            
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="SP-14 Chess AI Logo" class="logo">
+            <div id="game-stats" class="game-stats hidden">
+                <span class="stat-item"><strong>Turn:</strong> <span id="stat-turn">White</span></span>
+                <span class="stat-item"><strong>Castling:</strong>
+                    White [<span id="stat-wk">K✓</span> <span id="stat-wq">Q✓</span>],
+                    Black [<span id="stat-bk">K✓</span> <span id="stat-bq">Q✓</span>]
+                </span>
+                <span class="stat-item"><strong>En Passant:</strong> <span id="stat-ep">-</span></span>
+                <span class="stat-item"><strong>Halfmoves:</strong> <span id="stat-halfmove">0</span></span>
+                <span class="stat-item"><strong>Fullmoves:</strong> <span id="stat-fullmove">1</span></span>
+                <span class="stat-item"><strong>Ply:</strong> <span id="stat-ply">0</span></span>
             </div>
         </div>
         {% block content %}{% endblock %}

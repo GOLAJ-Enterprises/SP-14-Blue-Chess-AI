@@ -10,14 +10,17 @@
     <h2>
         {% if mode == "pvp" %}Player vs Player
         {% elif "ai" in mode %}Player vs AI
-        {% elif mode == "lan" %}LAN Multiplayer
         {% else %}Unknown Mode{% endif %}
     </h2>
 
     {% if "ai" in mode %}
         {% if color is none %}
             <div class="color-selection">
-                <p>White moves first. Choose your color:</p>
+                <p class="color-selection-choose">Choose a color to start your game:</p>
+                <p class="color-selection-note">
+                    Each color starts a separate game with its own board and AI behavior. 
+                    Playing as White and playing as Black are tracked independently.
+                </p>
                 <div class="color-buttons">
                     <button class="white-btn" onclick="selectColor('w')">White</button>
                     <button class="black-btn" onclick="selectColor('b')">Black</button>
@@ -25,31 +28,6 @@
             </div>
         {% else %}
             {% include "components/chessboard.html" %}
-        {% endif %}
-    {% elif mode == "lan" %}
-        {% if create %}
-            <div class="lan-create-menu">
-                <p class="lan-create-menu-subtitle">Create a LAN game</p>
-                <p class="lan-create-menu-question">Choose a color to play as:</p>
-                <div class="color-buttons lan">
-                    <button class="white-btn lan" onclick="createLANGame('w')">White</button>
-                    <button class="black-btn lan" onclick="createLANGame('b')">Black</button>
-                </div>
-            </div>
-        
-        {% elif game %}
-            <!-- You're in a LAN game (host or joined) -->
-            <p>Game ID: {{ game }}</p>
-            {% include "components/chessboard.html" %}
-        {% else %}
-            <!-- LAN lobby (before joining) -->
-            <div class="lan-menu">
-                <div class="lan-buttons">
-                    <button id="create-game" onclick="goToCreateLANGame()">Create LAN Game</button>
-                    <button id="refresh-games" onclick="refreshLANGames()">Refresh LAN Games</button>
-                </div>
-                <ul id="lan-game-list"></ul>
-            </div>
         {% endif %}
     {% elif mode == "pvp" %}
         {% include "components/chessboard.html" %}
@@ -60,8 +38,6 @@
 {% block scripts %}
 <script>
     const GAME_MODE = "{{ mode }}";
-    const PLAYER_COLOR = "{{ color }}";
-    const GAME_ID = "{{ game }}";
 </script>
 <script src="{{ url_for('static', filename='scripts/play.js') }}"></script>
 <script src="{{ url_for('static', filename='scripts/chessboard.js') }}"></script>

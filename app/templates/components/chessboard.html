@@ -1,4 +1,16 @@
 <div class="chessboard-container">
+    <div id="game-end-banner" class="game-end-banner hidden"></div>
+
+    <div class="promotion-container hidden">
+        <p>Select pawn promotion:</p>
+        <div class="promotion-buttons">
+            <button id="promotion-select-queen">♛ Queen</button>
+            <button id="promotion-select-rook">♜ Rook</button>
+            <button id="promotion-select-bishop">♝ Bishop</button>
+            <button id="promotion-select-knight">♞ Knight</button>
+        </div>
+    </div>
+
     <div class="chessboard" id="chessboard">
         {% for row in range(8) %}
             {% for col in range(8) %}
@@ -18,5 +30,10 @@
                 </div>
             {% endfor %}
         {% endfor %}
+    </div>
+
+    <div class="board-btns">
+        <button id="reset-btn" onclick="resetBoard()">Reset</button>
+        <button id="undo-btn" onclick="undoMove()">Undo</button>
     </div>
 </div>
