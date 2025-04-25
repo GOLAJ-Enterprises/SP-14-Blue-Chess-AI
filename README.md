@@ -27,12 +27,7 @@ poetry install
 ## Build the Standalone `.exe`
 
 ```bash
-pyinstaller --noconfirm --onefile ^
-  --add-data "app/templates;app/templates" ^
-  --add-data "app/static;app/static" ^
-  --add-data "app/data;app/data" ^
-  --add-data "neural_net/model;neural_net/model" ^
-  run.py
+pyinstaller --noconfirm --onefile --add-data "app/templates;app/templates" --add-data "app/static;app/static" --add-data "app/data;app/data" --add-data "neural_net/model;neural_net/model" run.py
 ```
 
 ## Run
