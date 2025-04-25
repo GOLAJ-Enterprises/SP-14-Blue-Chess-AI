@@ -1,7 +1,5 @@
-import threading
 import logging
-
-import webview
+import webbrowser
 from waitress import serve
 from app import create_app
 
@@ -23,30 +21,14 @@ def run_server():
     print("Starting Chess Server (production mode)")
     print(f"Local access only: http://{host}:{port}")
 
-    # Serve with Waitress on localhost only,
-    # bump threads so it won't hit queue-depth warnings
-    server_thread = threading.Thread(
-        target=lambda: serve(
-            app,
-            host=host,
-            port=port,
-            threads=8,
-            connection_limit=100,
-        ),
-        daemon=True,
-    )
-    server_thread.start()
+    # Open default browser
+    try:
+        webbrowser.open(f"http://{host}:{port}")
+    except Exception:
+        pass
 
-    # Open in a native window
-    webview.create_window(
-        "SP-14 Blue Chess AI",
-        f"http://{host}:{port}",
-        resizable=True,
-        width=1024,
-        height=768,
-        confirm_close=True,
-    )
-    webview.start()
+    # Serve with Waitress on localhost only
+    serve(app, host=host, port=port, threads=8, connection_limit=100)
 
 
 if __name__ == "__main__":
