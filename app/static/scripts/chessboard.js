@@ -5,6 +5,7 @@ let pendingPromotion = null;
 const params = new URLSearchParams(window.location.search);
 const gameMode = params.get("mode");
 const playerColor = params.get("color") || null; // 'white', 'black', or null
+let hasHumanMoved = false;
 const INITIAL_POSITION = {
     a1: "w_r", b1: "w_n", c1: "w_b", d1: "w_q", e1: "w_k", f1: "w_b", g1: "w_n", h1: "w_r",
     a2: "w_p", b2: "w_p", c2: "w_p", d2: "w_p", e2: "w_p", f2: "w_p", g2: "w_p", h2: "w_p",
@@ -15,6 +16,7 @@ const INITIAL_POSITION = {
 document.addEventListener("DOMContentLoaded", () => {
     const boardContainer = document.querySelector(".chessboard-container");
     const board = document.getElementById("chessboard");
+    window.undoButton = document.getElementById("undo-btn");
     const isAiGame = gameMode === "ai";
 
     if (board) {
@@ -137,6 +139,22 @@ function updateStats() {
                 const selector = `.square[data-piece-color="${activeColor}"][data-piece-type="k"]`;
                 const kingSquare = document.querySelector(selector);
                 if (kingSquare) kingSquare.classList.add("checked");
+            }
+
+            // Recompute whether the human has moved already
+            if (gameMode === "ai") {
+                if (playerColor === "w") {
+                    hasHumanMoved = data.ply >= 1;
+                } else {
+                    hasHumanMoved = data.ply >= 2;
+                }
+                window.undoButton.disabled = !hasHumanMoved;
+
+                if (hasHumanMoved) {
+                    window.undoButton.classList.remove("disabled");
+                } else {
+                    window.undoButton.classList.add("disabled");
+                }
             }
         })
         .catch(err => console.error("Failed to load FEN stats:", err));
@@ -550,6 +568,9 @@ function aiMove() {
 
 
 function undoMove() {
+    // If player is black vs AI and hasn't moved, do nothing
+    if (gameMode === "ai" && playerColor === "b" && !hasHumanMoved) return;
+
     const undoOnce = () => fetch("/undo", { method: "POST" }).then(res => res.json());
 
     if (gameMode === "ai") {

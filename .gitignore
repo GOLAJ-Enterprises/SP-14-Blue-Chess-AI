@@ -2,6 +2,7 @@
 .vscode
 neural_net/data/
 prepared_data/
+dev_run.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

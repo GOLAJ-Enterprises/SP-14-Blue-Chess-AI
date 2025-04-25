@@ -258,6 +258,12 @@
     transform: scale(0.96);
 }
 
+#undo-btn.disabled {
+    transform: none;
+    cursor: auto;
+    background: gray;
+}
+
 @keyframes slide-in-left {
     from { transform: translateX(-150%); opacity: 0; }
     to   { transform: translateX(0); opacity: 1; }
