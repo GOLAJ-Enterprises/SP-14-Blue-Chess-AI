@@ -12,11 +12,11 @@ const INITIAL_POSITION = {
     a7: "b_p", b7: "b_p", c7: "b_p", d7: "b_p", e7: "b_p", f7: "b_p", g7: "b_p", h7: "b_p",
     a8: "b_r", b8: "b_n", c8: "b_b", d8: "b_q", e8: "b_k", f8: "b_b", g8: "b_n", h8: "b_r"
 };
+const undoButton = document.getElementById("undo-btn");
 
 document.addEventListener("DOMContentLoaded", () => {
     const boardContainer = document.querySelector(".chessboard-container");
     const board = document.getElementById("chessboard");
-    window.undoButton = document.getElementById("undo-btn");
     const isAiGame = gameMode === "ai";
 
     if (board) {
@@ -154,21 +154,21 @@ function updateStats() {
                 } else {
                     hasHumanMoved = data.ply >= 2;
                 }
-                window.undoButton.disabled = !hasHumanMoved;
+                undoButton.disabled = !hasHumanMoved;
 
                 if (hasHumanMoved) {
-                    window.undoButton.classList.remove("disabled");
+                    undoButton.classList.remove("disabled");
                 } else {
-                    window.undoButton.classList.add("disabled");
+                    undoButton.classList.add("disabled");
                 }
             } else if (gameMode === "pvp") {
                 hasHumanMoved = data.ply >= 1;
-                window.undoButton.disabled = !hasHumanMoved;
+                undoButton.disabled = !hasHumanMoved;
 
                 if (hasHumanMoved) {
-                    window.undoButton.classList.remove("disabled");
+                    undoButton.classList.remove("disabled");
                 } else {
-                    window.undoButton.classList.add("disabled");
+                    undoButton.classList.add("disabled");
                 }
             }
         })
