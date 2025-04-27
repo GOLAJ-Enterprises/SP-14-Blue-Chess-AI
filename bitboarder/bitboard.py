@@ -138,7 +138,7 @@ class Board:
             self._post_init()
 
     def reset(self) -> None:
-        """Resets the board to the standard starting position using STARTING_FEN."""
+        """Resets the board to the standard starting position."""
         self.__init__()
 
     def set_from_fen(self, fen: str) -> bool:
@@ -584,7 +584,7 @@ class Board:
         return tensor
 
     def copy(self) -> Board:
-        """Return a deep copy of this Board, with all state and caches duplicated."""
+        """Returns a deep copy of this Board, duplicating all state, maps, and caches."""
         # Create a new, uninitialized instance
         new_board = Board.__new__(Board)
 
