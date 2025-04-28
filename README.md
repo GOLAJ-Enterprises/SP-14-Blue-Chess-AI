@@ -2,6 +2,8 @@
 
 A local chess engine that lets you play against a neural network-based AI or another player, using a browser-based interface served locally via Flask.
 
+![Player vs AI game screen](readme_imgs/Showcase.png)
+
 ## Features
 - AI powered by a TorchScript policy-value neural network
 - Monte Carlo Tree Search (MCTS) for move selection
