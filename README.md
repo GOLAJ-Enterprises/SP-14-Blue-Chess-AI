@@ -110,6 +110,7 @@ SP-14-Blue-Chess-AI/
 ├── app/                  # Flask routes, templates, static files
 ├── bitboarder/           # Bitboard-based chess engine core
 ├── neural_net/           # TorchScript model and training code
+├── readme_imgs/          # Image(s) to be used in README.md
 ├── run.py                # App entrypoint (server + browser launch)
 ├── pyproject.toml        # Poetry project config
 ├── dist/                 # Final compiled executable (after build)
