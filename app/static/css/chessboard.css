@@ -13,7 +13,7 @@
 .game-end-banner {
     background: #222;
     color: white;
-    font-size: 1.5rem;
+    font-size: 1rem;
     margin-bottom: 5px;
     border-radius: 8px;
     box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
@@ -71,7 +71,7 @@
     color: white;
     border: 2px solid #666;
     padding: 8px 12px;
-    font-size: 1.2rem;
+    font-size: 1rem;
     border-radius: 4px;
     cursor: pointer;
     transition: background 0.2s ease, transform 0.1s ease;
@@ -93,7 +93,7 @@
     display: grid;
     grid-template-columns: repeat(8, 1fr);
     grid-template-rows:    repeat(8, 1fr);
-    width: min(80vw, 100vh - 400px);
+    width: min(80vw, 100vh - 375px);
     aspect-ratio: 1 / 1;
     border: 4px solid #444;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
@@ -156,10 +156,11 @@
     cursor: pointer;
     padding: 10%;
     box-sizing: border-box;
+    font-size: 1vmin;
 }
 
 .square.checked {
-    box-shadow: inset 0 0 0 5px darkred;
+    box-shadow: inset 0 0 0 0.4em darkred;
 }
 
 .square.light {
@@ -173,7 +174,7 @@
 .corner-label {
     position: absolute;
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 1.4em;
     z-index: 2;
     user-select: none;
 }
@@ -231,7 +232,7 @@
 }
 
 .square:hover {
-    box-shadow: inset 0 0 0 5px #fbc02d;
+    box-shadow: inset 0 0 0 0.4em #fbc02d;
 }
 
 .square:hover .piece {
@@ -240,11 +241,11 @@
 }
 .square.selected {
     transition: box-shadow 0.2s ease;
-    box-shadow: inset 0 0 0 5px #3ca1ff;
+    box-shadow: inset 0 0 0 0.4em #3ca1ff;
 }
 .square.error {
     transition: box-shadow 0.2s ease;
-    box-shadow: inset 0 0 0 5px rgb(255, 80, 80);
+    box-shadow: inset 0 0 0 0.4em rgb(255, 80, 80);
 }
 
 .board-btns {
